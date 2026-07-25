@@ -8,11 +8,15 @@ var kill_label: Label
 var round_label: Label
 var timer_label: Label
 var game_over_label: Label
+var victory_panel: Panel
+var level_intro_panel: Panel
+var level_intro_label: Label
 var stat_labels: Dictionary = {}
 
 
 func _ready() -> void:
 	layer = 10
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_ui()
 	EventBus.player_health_changed.connect(_on_health_changed)
 	EventBus.xp_gained.connect(_on_xp_changed)
@@ -20,7 +24,10 @@ func _ready() -> void:
 	EventBus.currency_collected.connect(_on_currency_changed)
 	EventBus.enemy_killed.connect(_on_enemy_killed)
 	EventBus.player_died.connect(_on_player_died)
+	EventBus.game_won.connect(_on_game_won)
+	EventBus.boss_round_started.connect(_on_boss_round_started)
 	EventBus.round_timer_tick.connect(_on_timer_tick)
+	EventBus.level_changed.connect(_on_level_changed)
 	EventBus.mutation_activated.connect(func(_id: String) -> void: _update_stats())
 	EventBus.stats_changed.connect(_update_stats)
 
@@ -118,8 +125,72 @@ func _build_ui() -> void:
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	game_over_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	game_over_label.set_anchors_preset(Control.PRESET_CENTER)
+	game_over_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	game_over_label.grow_vertical = Control.GROW_DIRECTION_BOTH
 	game_over_label.visible = false
 	root.add_child(game_over_label)
+
+	# ── Victoria (oculto) ──
+	victory_panel = Panel.new()
+	victory_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var vic_style = StyleBoxFlat.new()
+	vic_style.bg_color = Color(0, 0, 0, 0.9)
+	victory_panel.add_theme_stylebox_override("panel", vic_style)
+	victory_panel.visible = false
+	victory_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(victory_panel)
+	
+	var vic_vbox = VBoxContainer.new()
+	vic_vbox.set_anchors_preset(Control.PRESET_CENTER)
+	vic_vbox.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	vic_vbox.grow_vertical = Control.GROW_DIRECTION_BOTH
+	vic_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vic_vbox.add_theme_constant_override("separation", 30)
+	victory_panel.add_child(vic_vbox)
+	
+	var vic_title = Label.new()
+	vic_title.text = "¡VICTORIA!"
+	vic_title.add_theme_font_size_override("font_size", 72)
+	vic_title.add_theme_color_override("font_color", Color(1, 0.84, 0.0))
+	vic_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vic_vbox.add_child(vic_title)
+	
+	var btn_hbox = HBoxContainer.new()
+	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_hbox.add_theme_constant_override("separation", 20)
+	vic_vbox.add_child(btn_hbox)
+	
+	var restart_btn = Button.new()
+	restart_btn.text = "Reiniciar"
+	restart_btn.custom_minimum_size = Vector2(150, 50)
+	restart_btn.pressed.connect(func(): get_tree().paused = false; GameManager.reset(); get_tree().reload_current_scene())
+	btn_hbox.add_child(restart_btn)
+	
+	var exit_btn = Button.new()
+	exit_btn.text = "Salir"
+	exit_btn.custom_minimum_size = Vector2(150, 50)
+	exit_btn.pressed.connect(func(): get_tree().quit())
+	btn_hbox.add_child(exit_btn)
+
+	# ── Nivel Intro (Fade-out) ──
+	level_intro_panel = Panel.new()
+	level_intro_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var intro_style := StyleBoxFlat.new()
+	intro_style.bg_color = Color(0, 0, 0, 0.5)
+	level_intro_panel.add_theme_stylebox_override("panel", intro_style)
+	level_intro_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	level_intro_panel.modulate.a = 0.0 # Oculto por defecto
+	root.add_child(level_intro_panel)
+	
+	level_intro_label = Label.new()
+	level_intro_label.set_anchors_preset(Control.PRESET_CENTER)
+	level_intro_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	level_intro_label.grow_vertical = Control.GROW_DIRECTION_BOTH
+	level_intro_label.add_theme_font_size_override("font_size", 52)
+	level_intro_label.add_theme_color_override("font_color", Color.WHITE)
+	level_intro_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	level_intro_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	level_intro_panel.add_child(level_intro_label)
 
 
 # ── Helpers ────────────────────────────────────────────────────
@@ -203,11 +274,42 @@ func _on_timer_tick(seconds_left: int) -> void:
 		timer_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 	else:
 		timer_label.add_theme_color_override("font_color", Color.WHITE)
-	round_label.text = "Ronda %d" % GameManager.current_wave
+		
+	var level_name: String = GameManager.LEVELS[GameManager.current_level_index]
+	var round_num: int = GameManager.current_round_in_level
+	if round_num == 5:
+		timer_label.text = ""
+		round_label.text = "%s - %s" % [level_name, GameManager.BOSS_NAMES[GameManager.current_level_index]]
+	else:
+		round_label.text = "%s - Ronda %d" % [level_name, round_num]
 
 
 func _on_player_died() -> void:
 	game_over_label.visible = true
+
+
+func _on_game_won() -> void:
+	victory_panel.visible = true
+	var tw = create_tween()
+	victory_panel.modulate.a = 0.0
+	tw.tween_property(victory_panel, "modulate:a", 1.0, 1.0)
+
+
+func _on_boss_round_started(boss_name: String) -> void:
+	level_intro_label.text = boss_name
+	level_intro_panel.modulate.a = 1.0
+	var tw := create_tween()
+	tw.tween_interval(1.5)
+	tw.tween_property(level_intro_panel, "modulate:a", 0.0, 2.0)
+
+
+func _on_level_changed(level_index: int, level_name: String) -> void:
+	level_intro_label.text = level_name.to_upper()
+	level_intro_panel.modulate.a = 1.0
+	
+	var tw := create_tween()
+	tw.tween_interval(1.0)
+	tw.tween_property(level_intro_panel, "modulate:a", 0.0, 2.0)
 
 
 # ── Panel de estadísticas ──────────────────────────────────────

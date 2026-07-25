@@ -1,11 +1,17 @@
 extends Node
 ## Estado global del juego: stats, XP, niveles, moneda, mutaciones, rondas.
 
-enum GameState { PLAYING, PAUSED, GAME_OVER, SHOPPING }
+enum GameState { PLAYING, PAUSED, GAME_OVER, SHOPPING, VICTORY }
 
 # ── Estado de partida ──────────────────────────────────────────
 var current_state: GameState = GameState.PLAYING
 var current_wave: int = 1
+
+const LEVELS: Array = ["Pulmones", "Cerebro", "Corazón"]
+const BOSS_NAMES: Array = ["John Rapamune", "Levetiracetam", "Corazón, Señor del Poder y de la Amistad"]
+var current_level_index: int = 0
+var current_round_in_level: int = 1
+
 var total_kills: int = 0
 var total_currency: int = 0
 var player_level: int = 1
@@ -16,9 +22,9 @@ var xp_to_next_level: int = 30
 const ARENA_HALF_SIZE: float = 600.0
 
 # Tienda
-var reroll_cost: int = 10
-var _reroll_base: int = 10
-var _reroll_increment: int = 5
+var reroll_cost: int = 50
+var _reroll_base: int = 50
+var _reroll_increment: int = 25
 
 # ── Stats base del jugador ─────────────────────────────────────
 var base_stats: Dictionary = {
@@ -50,6 +56,8 @@ func _ready() -> void:
 func reset() -> void:
 	current_state = GameState.PLAYING
 	current_wave = 1
+	current_level_index = 0
+	current_round_in_level = 1
 	total_kills = 0
 	total_currency = 0
 	player_level = 1
@@ -94,6 +102,16 @@ func activate_mutation(mutation_id: String) -> void:
 	match mutation_id:
 		"reinforced_membrane":
 			add_modifier("max_hp", "reinforced_membrane", 0.0, 0.25)
+		"minor_health":
+			add_modifier("max_hp", mutation_id, 0.0, 0.10)
+		"minor_attack":
+			add_modifier("attack", mutation_id, 0.0, 0.10)
+		"minor_speed":
+			add_modifier("move_speed", mutation_id, 0.0, 0.10)
+		"minor_atk_speed":
+			add_modifier("attack_speed", mutation_id, 0.0, 0.10)
+		"minor_defense":
+			add_modifier("defense", mutation_id, 1.0, 0.0)
 
 	EventBus.mutation_activated.emit(mutation_id)
 

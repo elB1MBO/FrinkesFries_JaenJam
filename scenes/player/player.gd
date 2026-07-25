@@ -16,6 +16,8 @@ var _toxic_timer: float = 0.0
 var _toxic_range: float = 80.0
 var _toxic_damage: float = 5.0
 
+var _knockback_velocity: Vector2 = Vector2.ZERO
+
 
 func _ready() -> void:
 	add_to_group("player")
@@ -26,9 +28,13 @@ func _ready() -> void:
 	EventBus.mutation_activated.connect(_on_mutation_activated)
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	var input_dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = input_dir * GameManager.get_stat("move_speed")
+	var target_velocity := input_dir * GameManager.get_stat("move_speed")
+	
+	_knockback_velocity = _knockback_velocity.lerp(Vector2.ZERO, 15.0 * delta)
+	velocity = target_velocity + _knockback_velocity
+	
 	move_and_slide()
 	# Limitar al borde de la arena
 	var limit := GameManager.ARENA_HALF_SIZE
@@ -74,10 +80,20 @@ func _shoot_at(target_pos: Vector2) -> void:
 
 
 # ── Recibir daño ───────────────────────────────────────────────
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, source_pos: Vector2 = Vector2.ZERO) -> void:
 	if not damage_cooldown.is_stopped():
 		return
+		
+	# I-frames (breve ventana de invulnerabilidad)
+	damage_cooldown.wait_time = 0.15
 	damage_cooldown.start()
+	
+	# Knockback
+	if source_pos != Vector2.ZERO:
+		var dir := (global_position - source_pos).normalized()
+		if dir.length() == 0:
+			dir = Vector2.RIGHT
+		_knockback_velocity = dir * 600.0
 
 	var defense := GameManager.get_stat("defense")
 	var actual := maxf(1.0, amount - defense)
@@ -91,7 +107,7 @@ func take_damage(amount: float) -> void:
 
 	# Mutación: Pinchos Reactivos
 	if GameManager.has_mutation("reactive_spikes"):
-		_trigger_reactive_spikes()
+		call_deferred("_trigger_reactive_spikes")
 
 	if current_hp <= 0.0:
 		EventBus.player_died.emit()

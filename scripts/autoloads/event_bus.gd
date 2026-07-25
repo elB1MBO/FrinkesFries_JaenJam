@@ -25,10 +25,16 @@ signal mutation_activated(mutation_id: String)
 @warning_ignore("unused_signal")
 signal stats_changed()
 
-# Rondas
+# Rondas y Niveles
 @warning_ignore("unused_signal")
 signal round_timer_tick(seconds_left: int)
 @warning_ignore("unused_signal")
 signal round_ended(round_number: int)
 @warning_ignore("unused_signal")
 signal shop_closed()
+@warning_ignore("unused_signal")
+signal level_changed(level_index: int, level_name: String)
+@warning_ignore("unused_signal")
+signal game_won()
+@warning_ignore("unused_signal")
+signal boss_round_started(boss_name: String)

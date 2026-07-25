@@ -5,10 +5,11 @@ extends CharacterBody2D
 @export var damage: float = 8.0
 @export var xp_reward: int = 5    # XP directa al morir
 @export var dna_drop_min: int = 1
-@export var dna_drop_max: int = 3
+@export var dna_drop_max: int = 1
 
 var current_hp: float
 var player: Node2D = null
+var _stun_timer: float = 0.0
 
 var dna_scene: PackedScene = preload("res://scenes/pickups/dna_fragment.tscn")
 
@@ -19,7 +20,11 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player")
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	if _stun_timer > 0.0:
+		_stun_timer -= delta
+		return
+
 	if not player or not is_instance_valid(player):
 		return
 	var dir := (player.global_position - global_position).normalized()
@@ -29,7 +34,8 @@ func _physics_process(_delta: float) -> void:
 	for i in get_slide_collision_count():
 		var collider = get_slide_collision(i).get_collider()
 		if collider.is_in_group("player") and collider.has_method("take_damage"):
-			collider.take_damage(damage)
+			collider.take_damage(damage, global_position)
+			_stun_timer = 0.4
 
 
 func take_damage(amount: float) -> void:
