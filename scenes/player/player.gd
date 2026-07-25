@@ -1,38 +1,53 @@
 extends CharacterBody2D
-
-# ── Stats base ─────────────────────────────────────────────────
-@export var max_hp: float = 100.0
-@export var attack: float = 10.0
-@export var defense: float = 2.0
-@export var attack_speed: float = 2.5
-@export var move_speed: float = 200.0
-@export var attack_range: float = 350.0
+## Virus protagonista — se mueve con WASD/flechas, dispara automáticamente
+## al enemigo más cercano. Lee stats de GameManager. Gestiona mutaciones.
 
 var current_hp: float
 
 var projectile_scene: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
+var orbital_cell_scene: PackedScene = preload("res://scenes/mutations/orbital_cell.tscn")
 
 @onready var attack_timer: Timer = $AttackTimer
 @onready var damage_cooldown: Timer = $DamageCooldown
 
+# Estado de mutaciones
+var _regen_timer: float = 0.0
+var _toxic_timer: float = 0.0
+var _toxic_range: float = 80.0
+var _toxic_damage: float = 5.0
+
 
 func _ready() -> void:
 	add_to_group("player")
-	current_hp = max_hp
-	attack_timer.wait_time = 1.0 / attack_speed
-	attack_timer.start()
+	current_hp = GameManager.get_stat("max_hp")
+	_update_attack_speed()
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
-	EventBus.player_health_changed.emit(current_hp, max_hp)
+	EventBus.player_health_changed.emit(current_hp, GameManager.get_stat("max_hp"))
+	EventBus.mutation_activated.connect(_on_mutation_activated)
 
 
 func _physics_process(_delta: float) -> void:
 	var input_dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	velocity = input_dir * move_speed
+	velocity = input_dir * GameManager.get_stat("move_speed")
 	move_and_slide()
+	# Limitar al borde de la arena
+	var limit := GameManager.ARENA_HALF_SIZE
+	global_position.x = clampf(global_position.x, -limit, limit)
+	global_position.y = clampf(global_position.y, -limit, limit)
+
+
+func _process(delta: float) -> void:
+	_process_regen(delta)
+	_process_toxic_aura(delta)
 
 
 # ── Auto-disparo ───────────────────────────────────────────────
+func _update_attack_speed() -> void:
+	attack_timer.wait_time = 1.0 / GameManager.get_stat("attack_speed")
+
+
 func _on_attack_timer_timeout() -> void:
+	_update_attack_speed()
 	var nearest := _find_nearest_enemy()
 	if nearest:
 		_shoot_at(nearest.global_position)
@@ -41,7 +56,7 @@ func _on_attack_timer_timeout() -> void:
 func _find_nearest_enemy() -> Node2D:
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	var best: Node2D = null
-	var best_dist: float = attack_range
+	var best_dist: float = 350.0  # rango de ataque
 	for enemy in enemies:
 		var d := global_position.distance_to(enemy.global_position)
 		if d < best_dist:
@@ -54,33 +69,103 @@ func _shoot_at(target_pos: Vector2) -> void:
 	var proj = projectile_scene.instantiate()
 	proj.global_position = global_position
 	proj.direction = (target_pos - global_position).normalized()
-	proj.damage = attack
+	proj.damage = GameManager.get_stat("attack")
 	get_tree().current_scene.get_node("Projectiles").add_child(proj)
 
 
-# ── Recibir daño ──
+# ── Recibir daño ───────────────────────────────────────────────
 func take_damage(amount: float) -> void:
 	if not damage_cooldown.is_stopped():
 		return
 	damage_cooldown.start()
 
+	var defense := GameManager.get_stat("defense")
 	var actual := maxf(1.0, amount - defense)
 	current_hp -= actual
-	EventBus.player_health_changed.emit(current_hp, max_hp)
+	EventBus.player_health_changed.emit(current_hp, GameManager.get_stat("max_hp"))
 
+	# Flash rojo
 	modulate = Color.RED
 	var tw := create_tween()
 	tw.tween_property(self, "modulate", Color.WHITE, 0.2)
+
+	# Mutación: Pinchos Reactivos
+	if GameManager.has_mutation("reactive_spikes"):
+		_trigger_reactive_spikes()
 
 	if current_hp <= 0.0:
 		EventBus.player_died.emit()
 
 
-# ── Virus (de momento simple xd) ──
+# ── Curación ───────────────────────────────────────────────────
+func heal(amount: float) -> void:
+	var max_hp := GameManager.get_stat("max_hp")
+	current_hp = minf(current_hp + amount, max_hp)
+	EventBus.player_health_changed.emit(current_hp, max_hp)
+
+
+# ── Mutaciones: aplicación ─────────────────────────────────────
+func _on_mutation_activated(mutation_id: String) -> void:
+	match mutation_id:
+		"orbital_cell":
+			var cell = orbital_cell_scene.instantiate()
+			add_child(cell)
+		"reinforced_membrane":
+			# Curar el bonus de HP al adquirirlo
+			var bonus_hp := GameManager.get_stat("max_hp") - current_hp
+			if bonus_hp > 0:
+				heal(bonus_hp * 0.25)
+		"toxic_capside":
+			pass  # Se procesa en _process_toxic_aura
+		"reactive_spikes":
+			pass  # Se dispara en take_damage
+		"split_shot":
+			pass  # Se gestiona en projectile.gd
+
+
+# ── Mutaciones: efectos por tick ───────────────────────────────
+func _process_regen(delta: float) -> void:
+	if not GameManager.has_mutation("reinforced_membrane"):
+		return
+	_regen_timer += delta
+	if _regen_timer >= 1.0:
+		_regen_timer -= 1.0
+		heal(1.0)
+
+
+func _process_toxic_aura(delta: float) -> void:
+	if not GameManager.has_mutation("toxic_capside"):
+		return
+	_toxic_timer += delta
+	if _toxic_timer < 1.0:
+		return
+	_toxic_timer -= 1.0
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if global_position.distance_to(enemy.global_position) < _toxic_range:
+			if enemy.has_method("take_damage"):
+				enemy.take_damage(_toxic_damage)
+
+
+func _trigger_reactive_spikes() -> void:
+	var atk := GameManager.get_stat("attack") * 0.5
+	for i in 8:
+		var proj = projectile_scene.instantiate()
+		proj.global_position = global_position
+		proj.direction = Vector2.from_angle(i * TAU / 8.0)
+		proj.damage = atk
+		proj.speed = 350.0
+		get_tree().current_scene.get_node("Projectiles").add_child(proj)
+
+
+# ── Dibujo placeholder ────────────────────────────────────────
 func _draw() -> void:
-	# Cuerpo
+	# Aura tóxica visible
+	if GameManager.has_mutation("toxic_capside"):
+		draw_arc(Vector2.ZERO, _toxic_range, 0, TAU, 32, Color(0.6, 0.15, 0.9, 0.2), 2.0)
+		draw_circle(Vector2.ZERO, _toxic_range, Color(0.5, 0.1, 0.8, 0.05))
+
+	# Cuerpo del virus
 	draw_circle(Vector2.ZERO, 16.0, Color(0.18, 0.78, 0.22))
-	# Pinchos
 	for i in 8:
 		var angle := i * TAU / 8.0
 		var from := Vector2.from_angle(angle) * 14.0

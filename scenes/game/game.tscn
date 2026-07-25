@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://d3ihk4sql1ehj" path="res://scenes/game/game.gd" id="1_game"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/level_up_screen.tscn" id="4_lvlup"]
 
 [node name="Game" type="Node2D" unique_id=979715868]
 script = ExtResource("1_game")
@@ -20,3 +21,5 @@ wait_time = 1.8
 autostart = true
 
 [node name="HUD" parent="." unique_id=1104489914 instance=ExtResource("3_hud")]
+
+[node name="LevelUpScreen" parent="." unique_id=1219188425 instance=ExtResource("4_lvlup")]

@@ -6,6 +6,7 @@ var level_label: Label
 var currency_label: Label
 var kill_label: Label
 var game_over_label: Label
+var stat_labels: Dictionary = {}  # stat_name -> Label
 
 
 func _ready() -> void:
@@ -17,6 +18,7 @@ func _ready() -> void:
 	EventBus.currency_collected.connect(_on_currency_changed)
 	EventBus.enemy_killed.connect(_on_enemy_killed)
 	EventBus.player_died.connect(_on_player_died)
+	EventBus.mutation_activated.connect(func(_id: String) -> void: _update_stats())
 
 
 # ── Construir toda la UI ──
@@ -52,6 +54,7 @@ func _build_ui() -> void:
 	# Lvl, dinero y nº kills
 	var right_margin := MarginContainer.new()
 	right_margin.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	right_margin.grow_horizontal = Control.GROW_DIRECTION_BEGIN  # <--- ESTO EVITA QUE SALGA FUERA DE LA PANTALLA
 	right_margin.add_theme_constant_override("margin_right", 16)
 	right_margin.add_theme_constant_override("margin_top", 16)
 	right_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -70,6 +73,14 @@ func _build_ui() -> void:
 
 	kill_label = _make_label("💀 0", 16, Color(0.8, 0.8, 0.8))
 	rvbox.add_child(kill_label)
+
+	# Separador
+	var sep := HSeparator.new()
+	sep.add_theme_constant_override("separation", 8)
+	rvbox.add_child(sep)
+
+	# Panel de estadísticas
+	_build_stats_panel(rvbox)
 
 	# ── Game Over (oculto) ──
 	game_over_label = Label.new()
@@ -162,3 +173,64 @@ func _on_enemy_killed(_pos: Vector2, _xp: int) -> void:
 
 func _on_player_died() -> void:
 	game_over_label.visible = true
+
+
+func _build_stats_panel(parent: VBoxContainer) -> void:
+	# Añadimos un fondo oscuro para que resalte mucho más
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.05, 0.1, 0.8)
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 12
+	style.content_margin_bottom = 12
+	panel.add_theme_stylebox_override("panel", style)
+	parent.add_child(panel)
+
+	var stats_vbox := VBoxContainer.new()
+	panel.add_child(stats_vbox)
+
+	var title := Label.new()
+	title.text = "ESTADÍSTICAS"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	stats_vbox.add_child(title)
+
+	var sep := HSeparator.new()
+	stats_vbox.add_child(sep)
+
+	var stats_info: Array = [
+		["max_hp",       "❤️ HP Máx",     Color(1.0, 0.5, 0.5)],
+		["attack",       "⚔️ Ataque",     Color(1.0, 0.7, 0.3)],
+		["defense",      "🛡️ Defensa",    Color(0.5, 0.7, 1.0)],
+		["attack_speed", "⚡ Vel.Ataque",  Color(1.0, 1.0, 0.4)],
+		["move_speed",   "🏃 Vel.Movim.", Color(0.4, 1.0, 0.6)],
+		["life_steal",   "🩸 Robo vida",  Color(0.9, 0.3, 0.3)],
+		["crit_chance",  "💥 Prob.Crit.", Color(1.0, 0.6, 0.1)],
+		["luck",         "🍀 Suerte",     Color(0.3, 1.0, 0.5)],
+	]
+	for info in stats_info:
+		var stat_name: String = info[0]
+		var display_name: String = info[1]
+		var color: Color = info[2]
+		var lbl := Label.new()
+		lbl.add_theme_font_size_override("font_size", 16) # Letra más grande
+		lbl.add_theme_color_override("font_color", color)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		stat_labels[stat_name] = {"label": lbl, "display_name": display_name}
+		stats_vbox.add_child(lbl)
+	_update_stats()
+
+
+func _update_stats() -> void:
+	for stat_name in stat_labels:
+		var info: Dictionary = stat_labels[stat_name]
+		var val: float = GameManager.get_stat(stat_name)
+		var lbl: Label = info.label
+		# Porcentajes para crit y life steal
+		if stat_name in ["crit_chance", "life_steal"]:
+			lbl.text = "%s: %d%%" % [info.display_name, int(val * 100)]
+		else:
+			lbl.text = "%s: %d" % [info.display_name, int(val)]

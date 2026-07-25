@@ -1,6 +1,6 @@
 extends Node2D
 
-@export var arena_half_size: float = 1500.0
+var arena_half_size: float = GameManager.ARENA_HALF_SIZE
 
 var enemy_scene: PackedScene = preload("res://scenes/enemies/base_enemy.tscn")
 
