@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://bbunxx87evevw"]
+
+[ext_resource type="Script" uid="uid://d3ihk4sql1ehj" path="res://scenes/game/game.gd" id="1_game"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3_hud"]
+
+[node name="Game" type="Node2D" unique_id=979715868]
+script = ExtResource("1_game")
+
+[node name="Player" parent="." unique_id=80261639 instance=ExtResource("2_player")]
+
+[node name="Enemies" type="Node2D" parent="." unique_id=516646082]
+
+[node name="Projectiles" type="Node2D" parent="." unique_id=983078432]
+
+[node name="Pickups" type="Node2D" parent="." unique_id=1842131615]
+
+[node name="EnemySpawnTimer" type="Timer" parent="." unique_id=52729982]
+wait_time = 1.8
+autostart = true
+
+[node name="HUD" parent="." unique_id=1104489914 instance=ExtResource("3_hud")]

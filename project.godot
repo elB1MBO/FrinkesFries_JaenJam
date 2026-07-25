@@ -16,7 +16,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="FrinkesFries_JaenJam"
 config/features=PackedStringArray("4.6", "GL Compatibility")
+run/main_scene="res://scenes/game/game.tscn"
 config/icon="res://icon.svg"
+
+[autoload]
+
+EventBus="*res://scripts/autoloads/event_bus.gd"
+GameManager="*res://scripts/autoloads/game_manager.gd"
 
 [display]
 
@@ -25,8 +31,16 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[layer_names]
+
+2d_physics/layer_1="Player"
+2d_physics/layer_2="Enemies"
+2d_physics/layer_3="Projectiles"
+2d_physics/layer_4="Pickups"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+
