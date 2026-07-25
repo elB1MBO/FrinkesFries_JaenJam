@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/enemies/jhon_rapamune_minion.gd" id="1_minion"]
+[ext_resource type="Texture2D" path="res://assets/sprites/jhon_rapamune_minion.png" id="2_sprite"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_minion"]
+radius = 10.0
+
+[node name="JhonRapamuneMinion" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_minion")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_minion")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(2, 2)
+texture = ExtResource("2_sprite")

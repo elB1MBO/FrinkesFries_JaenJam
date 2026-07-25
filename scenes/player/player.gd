@@ -9,12 +9,19 @@ var orbital_cell_scene: PackedScene = preload("res://scenes/mutations/orbital_ce
 
 @onready var attack_timer: Timer = $AttackTimer
 @onready var damage_cooldown: Timer = $DamageCooldown
+@onready var sprite: Sprite2D = $Sprite2D
+@onready var anim_timer: Timer = $AnimTimer
+
+var anim_frame_toggle: int = 0
 
 # Estado de mutaciones
 var _regen_timer: float = 0.0
 var _toxic_timer: float = 0.0
 var _toxic_range: float = 80.0
 var _toxic_damage: float = 5.0
+
+var _slow_amount: float = 0.0
+var _slow_timer: float = 0.0
 
 var _knockback_velocity: Vector2 = Vector2.ZERO
 
@@ -24,13 +31,20 @@ func _ready() -> void:
 	current_hp = GameManager.get_stat("max_hp")
 	_update_attack_speed()
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
+	anim_timer.timeout.connect(_on_anim_timer_timeout)
 	EventBus.player_health_changed.emit(current_hp, GameManager.get_stat("max_hp"))
 	EventBus.mutation_activated.connect(_on_mutation_activated)
+	_update_sprite_state()
 
 
 func _physics_process(delta: float) -> void:
+	if _slow_timer > 0.0:
+		_slow_timer -= delta
+		if _slow_timer <= 0.0:
+			_slow_amount = 0.0
+
 	var input_dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	var target_velocity := input_dir * GameManager.get_stat("move_speed")
+	var target_velocity := input_dir * GameManager.get_stat("move_speed") * (1.0 - _slow_amount)
 	
 	_knockback_velocity = _knockback_velocity.lerp(Vector2.ZERO, 15.0 * delta)
 	velocity = target_velocity + _knockback_velocity
@@ -103,11 +117,12 @@ func take_damage(amount: float, source_pos: Vector2 = Vector2.ZERO) -> void:
 	var actual := maxf(1.0, amount - defense)
 	current_hp -= actual
 	EventBus.player_health_changed.emit(current_hp, GameManager.get_stat("max_hp"))
+	_update_sprite_state()
 
 	# Flash rojo
-	modulate = Color.RED
+	sprite.modulate = Color.RED
 	var tw := create_tween()
-	tw.tween_property(self, "modulate", Color.WHITE, 0.2)
+	tw.tween_property(sprite, "modulate", Color.WHITE, 0.2)
 
 	# Mutación: Pinchos Reactivos
 	if GameManager.has_mutation("reactive_spikes"):
@@ -122,6 +137,12 @@ func heal(amount: float) -> void:
 	var max_hp := GameManager.get_stat("max_hp")
 	current_hp = minf(current_hp + amount, max_hp)
 	EventBus.player_health_changed.emit(current_hp, max_hp)
+	_update_sprite_state()
+
+
+func apply_slow(amount: float, duration: float) -> void:
+	_slow_amount = maxf(_slow_amount, amount)
+	_slow_timer = duration
 
 
 # ── Mutaciones: aplicación ─────────────────────────────────────
@@ -179,25 +200,21 @@ func _trigger_reactive_spikes() -> void:
 		proj.damage = atk
 		proj.speed = 350.0
 
+# ── Animación y estado visual ──────────────────────────────────
+func _on_anim_timer_timeout() -> void:
+	anim_frame_toggle = 1 - anim_frame_toggle
+	_update_sprite_state()
 
-# ── Dibujo placeholder ────────────────────────────────────────
+func _update_sprite_state() -> void:
+	var mutation_count := GameManager.active_mutations.size()
+	var row := clampi(mutation_count, 0, 4)
+		
+	sprite.frame = row * 2 + anim_frame_toggle
+
+
+# ── Dibujo de Mutaciones ──────────────────────────────────────
 func _draw() -> void:
 	# Aura tóxica visible
 	if GameManager.has_mutation("toxic_capside"):
 		draw_arc(Vector2.ZERO, _toxic_range, 0, TAU, 32, Color(0.6, 0.15, 0.9, 0.2), 2.0)
 		draw_circle(Vector2.ZERO, _toxic_range, Color(0.5, 0.1, 0.8, 0.05))
-
-	# Cuerpo del virus
-	draw_circle(Vector2.ZERO, 16.0, Color(0.18, 0.78, 0.22))
-	for i in 8:
-		var angle := i * TAU / 8.0
-		var from := Vector2.from_angle(angle) * 14.0
-		var to := Vector2.from_angle(angle) * 22.0
-		draw_line(from, to, Color(0.1, 0.55, 0.12), 3.0)
-	# Ojos
-	draw_circle(Vector2(-5, -4), 4.0, Color.WHITE)
-	draw_circle(Vector2(5, -4), 4.0, Color.WHITE)
-	draw_circle(Vector2(-4, -5), 2.0, Color.BLACK)
-	draw_circle(Vector2(6, -5), 2.0, Color.BLACK)
-	# Sonrisa
-	draw_arc(Vector2(0, 2), 6.0, 0.2, PI - 0.2, 12, Color(0.08, 0.4, 0.1), 2.0)

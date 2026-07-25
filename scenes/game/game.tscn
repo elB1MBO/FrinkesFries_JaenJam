@@ -9,6 +9,13 @@
 [node name="Game" type="Node2D" unique_id=979715868]
 script = ExtResource("1_game")
 
+[node name="Background" type="Sprite2D" parent="."]
+z_index = -10
+texture_repeat = 2
+scale = Vector2(2, 2)
+region_enabled = true
+region_rect = Rect2(0, 0, 2000, 2000)
+
 [node name="Player" parent="." unique_id=80261639 instance=ExtResource("2_player")]
 
 [node name="Enemies" type="Node2D" parent="." unique_id=516646082]

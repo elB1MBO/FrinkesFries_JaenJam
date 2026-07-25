@@ -7,11 +7,14 @@ var currency_label: Label
 var kill_label: Label
 var round_label: Label
 var timer_label: Label
-var game_over_label: Label
+var game_over_panel: Panel
 var victory_panel: Panel
 var level_intro_panel: Panel
 var level_intro_label: Label
 var stat_labels: Dictionary = {}
+
+var boss_hp_bar: ProgressBar
+var boss_container: VBoxContainer
 
 
 func _ready() -> void:
@@ -26,6 +29,10 @@ func _ready() -> void:
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.game_won.connect(_on_game_won)
 	EventBus.boss_round_started.connect(_on_boss_round_started)
+	EventBus.boss_spawned.connect(_on_boss_spawned)
+	EventBus.boss_health_changed.connect(_on_boss_health_changed)
+	EventBus.boss_defeated.connect(_on_boss_defeated)
+	EventBus.round_ended.connect(_on_round_ended)
 	EventBus.round_timer_tick.connect(_on_timer_tick)
 	EventBus.level_changed.connect(_on_level_changed)
 	EventBus.mutation_activated.connect(func(_id: String) -> void: _update_stats())
@@ -87,6 +94,16 @@ func _build_ui() -> void:
 	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	timer_vbox.add_child(timer_label)
 
+	boss_container = VBoxContainer.new()
+	boss_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	boss_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_container.visible = false
+	timer_vbox.add_child(boss_container)
+	
+	boss_hp_bar = _make_bar(Color(0.9, 0.2, 0.5), Color(0.2, 0.05, 0.1, 0.8))
+	boss_hp_bar.custom_minimum_size = Vector2(400, 24)
+	boss_container.add_child(boss_hp_bar)
+
 	# ── Esquina superior derecha: Nivel, ADN, Kills, Stats ──
 	var right_margin := MarginContainer.new()
 	right_margin.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -118,17 +135,46 @@ func _build_ui() -> void:
 	_build_stats_panel(rvbox)
 
 	# ── Game Over (oculto) ──
-	game_over_label = Label.new()
-	game_over_label.text = "GAME OVER"
-	game_over_label.add_theme_font_size_override("font_size", 64)
-	game_over_label.add_theme_color_override("font_color", Color(1, 0.2, 0.2))
-	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	game_over_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	game_over_label.set_anchors_preset(Control.PRESET_CENTER)
-	game_over_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	game_over_label.grow_vertical = Control.GROW_DIRECTION_BOTH
-	game_over_label.visible = false
-	root.add_child(game_over_label)
+	game_over_panel = Panel.new()
+	game_over_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var go_style = StyleBoxFlat.new()
+	go_style.bg_color = Color(0.1, 0.0, 0.0, 0.8)
+	game_over_panel.add_theme_stylebox_override("panel", go_style)
+	game_over_panel.visible = false
+	game_over_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(game_over_panel)
+	
+	var go_vbox = VBoxContainer.new()
+	go_vbox.set_anchors_preset(Control.PRESET_CENTER)
+	go_vbox.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	go_vbox.grow_vertical = Control.GROW_DIRECTION_BOTH
+	go_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	go_vbox.add_theme_constant_override("separation", 30)
+	game_over_panel.add_child(go_vbox)
+	
+	var go_title = Label.new()
+	go_title.text = "GAME OVER"
+	go_title.add_theme_font_size_override("font_size", 72)
+	go_title.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+	go_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	go_vbox.add_child(go_title)
+	
+	var go_btn_hbox = HBoxContainer.new()
+	go_btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	go_btn_hbox.add_theme_constant_override("separation", 20)
+	go_vbox.add_child(go_btn_hbox)
+	
+	var go_restart_btn = Button.new()
+	go_restart_btn.text = "Reiniciar"
+	go_restart_btn.custom_minimum_size = Vector2(150, 50)
+	go_restart_btn.pressed.connect(func(): get_tree().paused = false; GameManager.reset(); get_tree().reload_current_scene())
+	go_btn_hbox.add_child(go_restart_btn)
+	
+	var go_exit_btn = Button.new()
+	go_exit_btn.text = "Salir"
+	go_exit_btn.custom_minimum_size = Vector2(150, 50)
+	go_exit_btn.pressed.connect(func(): get_tree().quit())
+	go_btn_hbox.add_child(go_exit_btn)
 
 	# ── Victoria (oculto) ──
 	victory_panel = Panel.new()
@@ -285,7 +331,10 @@ func _on_timer_tick(seconds_left: int) -> void:
 
 
 func _on_player_died() -> void:
-	game_over_label.visible = true
+	game_over_panel.visible = true
+	var tw = create_tween()
+	game_over_panel.modulate.a = 0.0
+	tw.tween_property(game_over_panel, "modulate:a", 1.0, 1.0)
 
 
 func _on_game_won() -> void:
@@ -301,6 +350,21 @@ func _on_boss_round_started(boss_name: String) -> void:
 	var tw := create_tween()
 	tw.tween_interval(1.5)
 	tw.tween_property(level_intro_panel, "modulate:a", 0.0, 2.0)
+
+func _on_boss_spawned(max_hp: float) -> void:
+	boss_container.visible = true
+	boss_hp_bar.max_value = max_hp
+	boss_hp_bar.value = max_hp
+
+func _on_boss_health_changed(current: float, maximum: float) -> void:
+	boss_hp_bar.max_value = maximum
+	boss_hp_bar.value = current
+
+func _on_boss_defeated() -> void:
+	boss_container.visible = false
+
+func _on_round_ended(_wave: int) -> void:
+	boss_container.visible = false
 
 
 func _on_level_changed(level_index: int, level_name: String) -> void:

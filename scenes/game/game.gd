@@ -8,6 +8,7 @@ var macrophage_scene: PackedScene = preload("res://scenes/enemies/macrophage.tsc
 var lymphocyte_scene: PackedScene = preload("res://scenes/enemies/lymphocyte_b.tscn")
 var lymphocyte_t_scene: PackedScene = preload("res://scenes/enemies/lymphocyte_t.tscn")
 var red_blood_cell_scene: PackedScene = preload("res://scenes/enemies/red_blood_cell.tscn")
+var boss_jhon_rapamune_scene: PackedScene = preload("res://scenes/enemies/boss_jhon_rapamune.tscn")
 
 # Dificultad
 var enemies_per_spawn: int = 2
@@ -23,6 +24,11 @@ var _last_tick: int = -1
 @onready var enemies_node: Node2D = $Enemies
 @onready var projectiles_node: Node2D = $Projectiles
 @onready var pickups_node: Node2D = $Pickups
+@onready var background: Sprite2D = $Background
+
+var bg_pulmones: Texture2D = preload("res://assets/sprites/tileMaps/tilePulmones.png")
+var bg_cerebro: Texture2D = preload("res://assets/sprites/tileMaps/tileCerebro.png")
+var bg_corazon: Texture2D = preload("res://assets/sprites/tileMaps/tileCorazon.png")
 
 
 func _ready() -> void:
@@ -45,12 +51,16 @@ func _update_level_aesthetics() -> void:
 	match GameManager.current_level_index:
 		0: # Pulmones
 			RenderingServer.set_default_clear_color(Color(0.12, 0.05, 0.06))
+			if background: background.texture = bg_pulmones
 		1: # Cerebro
 			RenderingServer.set_default_clear_color(Color(0.06, 0.04, 0.15))
+			if background: background.texture = bg_cerebro
 		2: # Corazón
 			RenderingServer.set_default_clear_color(Color(0.15, 0.02, 0.02))
+			if background: background.texture = bg_corazon
 		_:
 			RenderingServer.set_default_clear_color(Color(0.06, 0.06, 0.12))
+			if background: background.texture = null
 
 
 func _process(delta: float) -> void:
@@ -89,23 +99,26 @@ func _on_spawn_timer() -> void:
 
 
 func _spawn_boss() -> void:
-	var boss = ObjectPool.acquire(macrophage_scene, enemies_node, _random_spawn_pos())
-	
-	# Marcar como boss
-	boss.set_meta("is_boss", true)
-	
-	# Escalar y mejorar al Macrófago para que sea un Boss
-	boss.scale = Vector2(2.5, 2.5)
-	boss.max_hp = 150.0 + 1500.0 + (_difficulty_step * 200.0)
-	boss.current_hp = boss.max_hp
-	if "speed" in boss:
-		boss.speed = 40.0 * 0.8
-	if "xp_reward" in boss:
-		boss.xp_reward = 15 + 500
-	if "dna_drop_max" in boss:
-		boss.dna_drop_max = 10 + 200
-	
-	pass
+	var boss: Node2D
+	# Nivel 0 = Pulmones -> John Rapamune
+	if GameManager.current_level_index == 0:
+		var spawn_pos := Vector2(0, -arena_half_size + 100.0) # Centro superior
+		boss = ObjectPool.acquire(boss_jhon_rapamune_scene, enemies_node, spawn_pos)
+		
+		# Ajustar estadísticas según dificultad
+		boss.max_hp += _difficulty_step * 250.0
+		boss.current_hp = boss.max_hp
+	else:
+		# Fallback para los otros niveles por ahora (macrófago gigante)
+		var spawn_pos := Vector2(0, -arena_half_size + 100.0)
+		boss = ObjectPool.acquire(macrophage_scene, enemies_node, spawn_pos)
+		boss.set_meta("is_boss", true)
+		boss.scale = Vector2(2.5, 2.5)
+		boss.max_hp = 150.0 + 1500.0 + (_difficulty_step * 200.0)
+		boss.current_hp = boss.max_hp
+		if "speed" in boss: boss.speed = 40.0 * 0.8
+		if "xp_reward" in boss: boss.xp_reward = 15 + 500
+		if "dna_drop_max" in boss: boss.dna_drop_max = 10 + 200
 
 
 func _pick_enemy_scene() -> PackedScene:
