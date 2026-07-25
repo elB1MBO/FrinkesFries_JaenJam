@@ -1,6 +1,6 @@
 # FrinkesFries - JaenJam
 
-Proyecto de juego 2D desarrollado con Godot 4.4 y GDScript.
+Proyecto de juego 2D desarrollado con Godot 4.6 y GDScript.
 
 ## Estructura del Proyecto
 
@@ -19,10 +19,10 @@ FrinkesFries_JaenJam/
 
 ## Requisitos
 
-- [Godot Engine 4.4+](https://godotengine.org/)
+- [Godot Engine 4.6+](https://godotengine.org/)
 
 ## Cómo ejecutar
 
-1. Abre Godot Engine 4.4+
+1. Abre Godot Engine 4.6+
 2. Importa el proyecto seleccionando la carpeta del mismo
 3. Pulsa el botón de **Play** o `F5`
