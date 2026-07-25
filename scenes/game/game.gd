@@ -30,6 +30,7 @@ func _ready() -> void:
 	spawn_timer.start()
 	_update_level_aesthetics()
 	EventBus.shop_closed.connect(_on_shop_closed)
+	EventBus.boss_defeated.connect(_on_boss_defeated)
 	_round_timer = round_duration
 	# Emitir señal de nivel inicial para HUD
 	call_deferred("_emit_initial_level")
@@ -87,26 +88,23 @@ func _on_spawn_timer() -> void:
 
 
 func _spawn_boss() -> void:
-	var boss = macrophage_scene.instantiate()
-	boss.global_position = _random_spawn_pos()
+	var boss = ObjectPool.acquire(macrophage_scene, enemies_node, _random_spawn_pos())
+	
+	# Marcar como boss
+	boss.set_meta("is_boss", true)
 	
 	# Escalar y mejorar al Macrófago para que sea un Boss
 	boss.scale = Vector2(2.5, 2.5)
-	boss.max_hp += 1500.0 + (_difficulty_step * 200.0)
-	if boss.has_method("_physics_process"):
-		if "speed" in boss:
-			boss.speed *= 0.8 # Un poco más lento al ser gigante
+	boss.max_hp = 150.0 + 1500.0 + (_difficulty_step * 200.0)
+	boss.current_hp = boss.max_hp
+	if "speed" in boss:
+		boss.speed = 40.0 * 0.8
 	if "xp_reward" in boss:
-		boss.xp_reward += 500
+		boss.xp_reward = 15 + 500
 	if "dna_drop_max" in boss:
-		boss.dna_drop_max += 200
-		
-	boss.tree_exited.connect(func():
-		if GameManager.current_state == GameManager.GameState.PLAYING:
-			call_deferred("_end_round")
-	)
-		
-	enemies_node.add_child(boss)
+		boss.dna_drop_max = 10 + 200
+	
+	pass
 
 
 func _pick_enemy_scene() -> PackedScene:
@@ -129,8 +127,7 @@ func _pick_enemy_scene() -> PackedScene:
 
 func _spawn_enemy() -> void:
 	var scene := _pick_enemy_scene()
-	var enemy = scene.instantiate()
-	enemy.global_position = _random_spawn_pos()
+	var enemy = ObjectPool.acquire(scene, enemies_node, _random_spawn_pos())
 	# Escalado de dificultad
 	enemy.max_hp += _difficulty_step * 2.0
 	if enemy.has_method("_physics_process"):
@@ -140,7 +137,8 @@ func _spawn_enemy() -> void:
 		enemy.xp_reward += int(_difficulty_step * 0.5)
 	if "dna_drop_max" in enemy:
 		enemy.dna_drop_max += int(_difficulty_step * 0.5)
-	enemies_node.add_child(enemy)
+	# add_child is handled by ObjectPool
+	pass
 
 
 func _random_spawn_pos() -> Vector2:
@@ -159,9 +157,14 @@ func _end_round() -> void:
 
 	# Limpiar arena
 	for enemy in enemies_node.get_children():
-		enemy.queue_free()
+		if enemy.process_mode != Node.PROCESS_MODE_DISABLED:
+			ObjectPool.release(enemy)
 	for proj in projectiles_node.get_children():
-		proj.queue_free()
+		if proj.process_mode != Node.PROCESS_MODE_DISABLED:
+			ObjectPool.release(proj)
+	for pickup in pickups_node.get_children():
+		if pickup.process_mode != Node.PROCESS_MODE_DISABLED:
+			ObjectPool.release(pickup)
 
 	EventBus.round_ended.emit(GameManager.current_wave)
 
@@ -204,6 +207,11 @@ func _increase_difficulty() -> void:
 	if _difficulty_step % 2 == 0:
 		enemies_per_spawn = mini(enemies_per_spawn + 1, 15)
 	spawn_timer.wait_time = maxf(spawn_timer.wait_time - 0.1, 0.6)
+
+
+func _on_boss_defeated() -> void:
+	if GameManager.current_state == GameManager.GameState.PLAYING:
+		call_deferred("_end_round")
 
 
 # ── Dibujar borde del mapa ─────────────────────────────────────

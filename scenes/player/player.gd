@@ -64,6 +64,11 @@ func _find_nearest_enemy() -> Node2D:
 	var best: Node2D = null
 	var best_dist: float = 350.0  # rango de ataque
 	for enemy in enemies:
+		if enemy.process_mode == Node.PROCESS_MODE_DISABLED:
+			continue
+		if enemy.get("current_hp") != null and enemy.current_hp <= 0.0:
+			continue
+			
 		var d := global_position.distance_to(enemy.global_position)
 		if d < best_dist:
 			best_dist = d
@@ -72,11 +77,10 @@ func _find_nearest_enemy() -> Node2D:
 
 
 func _shoot_at(target_pos: Vector2) -> void:
-	var proj = projectile_scene.instantiate()
-	proj.global_position = global_position
+	var proj_parent = get_tree().current_scene.get_node("Projectiles")
+	var proj = ObjectPool.acquire(projectile_scene, proj_parent, global_position)
 	proj.direction = (target_pos - global_position).normalized()
 	proj.damage = GameManager.get_stat("attack")
-	get_tree().current_scene.get_node("Projectiles").add_child(proj)
 
 
 # ── Recibir daño ───────────────────────────────────────────────
@@ -88,12 +92,12 @@ func take_damage(amount: float, source_pos: Vector2 = Vector2.ZERO) -> void:
 	damage_cooldown.wait_time = 0.15
 	damage_cooldown.start()
 	
-	# Knockback
+	# Knockback — only from nearby sources to avoid pool ghost hits
 	if source_pos != Vector2.ZERO:
-		var dir := (global_position - source_pos).normalized()
-		if dir.length() == 0:
-			dir = Vector2.RIGHT
-		_knockback_velocity = dir * 600.0
+		var dist_to_source := global_position.distance_to(source_pos)
+		if dist_to_source < 200.0 and dist_to_source > 0.01:
+			var dir := (global_position - source_pos).normalized()
+			_knockback_velocity = dir * 600.0
 
 	var defense := GameManager.get_stat("defense")
 	var actual := maxf(1.0, amount - defense)
@@ -157,6 +161,10 @@ func _process_toxic_aura(delta: float) -> void:
 		return
 	_toxic_timer -= 1.0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if enemy.process_mode == Node.PROCESS_MODE_DISABLED:
+			continue
+		if enemy.get("current_hp") != null and enemy.current_hp <= 0.0:
+			continue
 		if global_position.distance_to(enemy.global_position) < _toxic_range:
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(_toxic_damage)
@@ -164,13 +172,12 @@ func _process_toxic_aura(delta: float) -> void:
 
 func _trigger_reactive_spikes() -> void:
 	var atk := GameManager.get_stat("attack") * 0.5
+	var proj_parent = get_tree().current_scene.get_node("Projectiles")
 	for i in 8:
-		var proj = projectile_scene.instantiate()
-		proj.global_position = global_position
+		var proj = ObjectPool.acquire(projectile_scene, proj_parent, global_position)
 		proj.direction = Vector2.from_angle(i * TAU / 8.0)
 		proj.damage = atk
 		proj.speed = 350.0
-		get_tree().current_scene.get_node("Projectiles").add_child(proj)
 
 
 # ── Dibujo placeholder ────────────────────────────────────────

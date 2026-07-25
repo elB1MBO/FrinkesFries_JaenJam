@@ -22,10 +22,17 @@ var projectile_scene: PackedScene = preload("res://scenes/projectiles/enemy_proj
 
 func _ready() -> void:
 	add_to_group("enemies")
-	current_hp = max_hp
 	player = get_tree().get_first_node_in_group("player")
 	shoot_timer.wait_time = shoot_interval
 	shoot_timer.timeout.connect(_on_shoot_timer)
+	_on_acquire()
+
+func _on_acquire() -> void:
+	current_hp = max_hp
+	modulate = Color.WHITE
+	_in_range = false
+	if shoot_timer:
+		shoot_timer.stop()
 
 
 func _physics_process(_delta: float) -> void:
@@ -54,11 +61,10 @@ func _on_shoot_timer() -> void:
 	if not player or not is_instance_valid(player):
 		return
 	var dir := (player.global_position - global_position).normalized()
-	var proj = projectile_scene.instantiate()
-	proj.global_position = global_position
+	var proj_parent = get_tree().current_scene.get_node("Projectiles")
+	var proj = ObjectPool.acquire(projectile_scene, proj_parent, global_position)
 	proj.direction = dir
 	proj.damage = projectile_damage
-	get_tree().current_scene.get_node("Projectiles").call_deferred("add_child", proj)
 
 
 func take_damage(amount: float) -> void:
@@ -74,15 +80,14 @@ func _die() -> void:
 	EventBus.xp_gained.emit(xp_reward)
 	EventBus.enemy_killed.emit(global_position, xp_reward)
 	_spawn_dna()
-	queue_free()
-
+	ObjectPool.call_deferred("release", self)
 
 func _spawn_dna() -> void:
 	var total := randi_range(dna_drop_min, dna_drop_max)
-	var frag = dna_scene.instantiate()
-	frag.global_position = global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8))
+	var pickups = get_tree().current_scene.get_node("Pickups")
+	var pos = global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8))
+	var frag = ObjectPool.acquire(dna_scene, pickups, pos)
 	frag.dna_value = total
-	get_tree().current_scene.get_node("Pickups").call_deferred("add_child", frag)
 
 
 # ── Visual: Linfocito B (redondo, azulado, con anticuerpos) ───

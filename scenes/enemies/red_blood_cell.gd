@@ -15,12 +15,16 @@ var dna_scene: PackedScene = preload("res://scenes/pickups/dna_fragment.tscn")
 
 func _ready() -> void:
 	add_to_group("enemies")
-	current_hp = max_hp
-	# Dirección inicial aleatoria
-	direction = Vector2.from_angle(randf() * TAU).normalized()
 	# No colisiona con el jugador (no hace daño por contacto)
 	collision_layer = 2
 	collision_mask = 0
+	_on_acquire()
+
+func _on_acquire() -> void:
+	current_hp = max_hp
+	modulate = Color.WHITE
+	# Dirección inicial aleatoria
+	direction = Vector2.from_angle(randf() * TAU).normalized()
 
 
 func _physics_process(_delta: float) -> void:
@@ -50,19 +54,19 @@ func _die() -> void:
 	EventBus.xp_gained.emit(xp_reward)
 	EventBus.enemy_killed.emit(global_position, xp_reward)
 	_spawn_dna()
-	queue_free()
+	ObjectPool.call_deferred("release", self)
 
 
 func _spawn_dna() -> void:
 	# Botín masivo — varios fragmentos
 	var total := randi_range(dna_drop_min, dna_drop_max)
 	var num_frags := randi_range(3, 5)
+	var pickups = get_tree().current_scene.get_node("Pickups")
 	for i in num_frags:
-		var frag = dna_scene.instantiate()
-		frag.global_position = global_position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+		var pos = global_position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+		var frag = ObjectPool.acquire(dna_scene, pickups, pos)
 		@warning_ignore("integer_division")
 		frag.dna_value = maxi(1, total / num_frags)
-		get_tree().current_scene.get_node("Pickups").call_deferred("add_child", frag)
 
 
 # ── Visual: Glóbulo Rojo (disco bicóncavo, rojo) ──────────────

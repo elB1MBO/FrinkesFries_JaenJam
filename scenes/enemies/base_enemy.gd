@@ -10,17 +10,26 @@ extends CharacterBody2D
 var current_hp: float
 var player: Node2D = null
 var _stun_timer: float = 0.0
+var _is_dead: bool = false
 
 var dna_scene: PackedScene = preload("res://scenes/pickups/dna_fragment.tscn")
 
 
 func _ready() -> void:
 	add_to_group("enemies")
-	current_hp = max_hp
 	player = get_tree().get_first_node_in_group("player")
+	_on_acquire()
+
+func _on_acquire() -> void:
+	current_hp = max_hp
+	modulate = Color.WHITE
+	_stun_timer = 0.0
+	_is_dead = false
 
 
 func _physics_process(delta: float) -> void:
+	if _is_dead:
+		return
 	if _stun_timer > 0.0:
 		_stun_timer -= delta
 		return
@@ -39,6 +48,8 @@ func _physics_process(delta: float) -> void:
 
 
 func take_damage(amount: float) -> void:
+	if _is_dead:
+		return
 	current_hp -= amount
 	modulate = Color(2.0, 2.0, 2.0)
 	var tw := create_tween()
@@ -48,19 +59,17 @@ func take_damage(amount: float) -> void:
 
 
 func _die() -> void:
-	# XP directa al jugador (sin recoger)
+	_is_dead = true
 	EventBus.xp_gained.emit(xp_reward)
 	EventBus.enemy_killed.emit(global_position, xp_reward)
 	_spawn_dna()
-	queue_free()
-
+	ObjectPool.call_deferred("release", self)
 
 func _spawn_dna() -> void:
-	var dna_amount := randi_range(dna_drop_min, dna_drop_max)
-	var frag = dna_scene.instantiate()
-	frag.global_position = global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8))
-	frag.dna_value = dna_amount
-	get_tree().current_scene.get_node("Pickups").call_deferred("add_child", frag)
+	var total := randi_range(dna_drop_min, dna_drop_max)
+	var pickups = get_tree().current_scene.get_node("Pickups")
+	var frag = ObjectPool.acquire(dna_scene, pickups, global_position + Vector2(randf_range(-10, 10), randf_range(-10, 10)))
+	frag.dna_value = total
 
 
 # ── Glóbulo blanco ──
