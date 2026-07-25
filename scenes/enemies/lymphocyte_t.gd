@@ -1,11 +1,12 @@
 extends CharacterBody2D
+## Linfocito T (Melee agresivo) — rápido, resistente, da más XP y ADN.
 
-@export var max_hp: float = 30.0
-@export var speed: float = 80.0
-@export var damage: float = 8.0
-@export var xp_reward: int = 5    # XP directa al morir
-@export var dna_drop_min: int = 1
-@export var dna_drop_max: int = 1
+@export var max_hp: float = 60.0
+@export var speed: float = 90.0
+@export var damage: float = 15.0
+@export var xp_reward: int = 12
+@export var dna_drop_min: int = 5
+@export var dna_drop_max: int = 8
 
 var current_hp: float
 var player: Node2D = null
@@ -70,5 +71,3 @@ func _spawn_dna() -> void:
 	var pickups = get_tree().current_scene.get_node("Pickups")
 	var frag = ObjectPool.acquire(dna_scene, pickups, global_position + Vector2(randf_range(-10, 10), randf_range(-10, 10)))
 	frag.dna_value = total
-
-

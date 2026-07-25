@@ -6,6 +6,7 @@ var arena_half_size: float = GameManager.ARENA_HALF_SIZE
 var base_enemy_scene: PackedScene = preload("res://scenes/enemies/base_enemy.tscn")
 var macrophage_scene: PackedScene = preload("res://scenes/enemies/macrophage.tscn")
 var lymphocyte_scene: PackedScene = preload("res://scenes/enemies/lymphocyte_b.tscn")
+var lymphocyte_t_scene: PackedScene = preload("res://scenes/enemies/lymphocyte_t.tscn")
 var red_blood_cell_scene: PackedScene = preload("res://scenes/enemies/red_blood_cell.tscn")
 
 # Dificultad
@@ -113,14 +114,26 @@ func _pick_enemy_scene() -> PackedScene:
 	# Piñata: 2% (siempre presente, es neutral)
 	if roll < 0.02:
 		return red_blood_cell_scene
-	# Macrófago: empieza en ola 2, crece hasta 18%
-	var macro_chance := 0.0 if wave < 2 else minf(0.18, 0.08 + wave * 0.02)
-	if roll < 0.08 + macro_chance:
+	
+	var current_prob := 0.02
+	# Macrófago: empieza en ola 2, crece hasta 15%
+	var macro_chance := 0.0 if wave < 2 else minf(0.15, 0.05 + wave * 0.02)
+	current_prob += macro_chance
+	if roll < current_prob:
 		return macrophage_scene
-	# Linfocito B: empieza en ola 2, crece hasta 18%
-	var lympho_chance := 0.0 if wave < 2 else minf(0.18, 0.08 + wave * 0.02)
-	if roll < 0.08 + macro_chance + lympho_chance:
+		
+	# Linfocito B: empieza en ola 2, crece hasta 15%
+	var lympho_b_chance := 0.0 if wave < 2 else minf(0.15, 0.05 + wave * 0.02)
+	current_prob += lympho_b_chance
+	if roll < current_prob:
 		return lymphocyte_scene
+		
+	# Linfocito T: empieza en ola 3, crece hasta 15%
+	var lympho_t_chance := 0.0 if wave < 3 else minf(0.15, 0.05 + wave * 0.02)
+	current_prob += lympho_t_chance
+	if roll < current_prob:
+		return lymphocyte_t_scene
+		
 	# Resto: enemigo base
 	return base_enemy_scene
 

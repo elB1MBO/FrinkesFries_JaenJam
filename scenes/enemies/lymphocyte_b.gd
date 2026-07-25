@@ -88,20 +88,3 @@ func _spawn_dna() -> void:
 	var pos = global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8))
 	var frag = ObjectPool.acquire(dna_scene, pickups, pos)
 	frag.dna_value = total
-
-
-# ── Visual: Linfocito B (redondo, azulado, con anticuerpos) ───
-func _draw() -> void:
-	# Cuerpo
-	draw_circle(Vector2.ZERO, 12.0, Color(0.35, 0.5, 0.85))
-	draw_circle(Vector2.ZERO, 9.0, Color(0.4, 0.55, 0.9))
-	# Núcleo grande (típico de linfocitos)
-	draw_circle(Vector2(-1, 1), 7.0, Color(0.25, 0.3, 0.7))
-	# Anticuerpos en superficie (puntitos Y)
-	for i in 6:
-		var angle := i * TAU / 6.0
-		var pos := Vector2.from_angle(angle) * 11.0
-		draw_circle(pos, 2.0, Color(0.95, 0.85, 0.3))
-	# Indicador de rango (sutil)
-	if _in_range:
-		draw_arc(Vector2.ZERO, 14.0, 0, TAU, 16, Color(1.0, 0.3, 0.3, 0.4), 1.5)

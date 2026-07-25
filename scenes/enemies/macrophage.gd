@@ -91,21 +91,3 @@ func _spawn_dna() -> void:
 		var frag = ObjectPool.acquire(dna_scene, pickups, pos)
 		@warning_ignore("integer_division")
 		frag.dna_value = maxi(1, total / num_frags)
-
-
-# ── Visual: Macrófago (ameboide grande y morado) ──────────────
-func _draw() -> void:
-	# Cuerpo principal — ameboide irregular
-	draw_circle(Vector2.ZERO, 22.0, Color(0.55, 0.3, 0.55))
-	# Pseudópodos
-	draw_circle(Vector2(-14, -10), 10.0, Color(0.6, 0.35, 0.58))
-	draw_circle(Vector2(12, -12), 9.0, Color(0.58, 0.32, 0.56))
-	draw_circle(Vector2(16, 8), 10.0, Color(0.6, 0.35, 0.58))
-	draw_circle(Vector2(-10, 14), 9.0, Color(0.58, 0.32, 0.56))
-	draw_circle(Vector2(0, -16), 8.0, Color(0.6, 0.35, 0.58))
-	# Núcleo
-	draw_circle(Vector2(-2, 2), 8.0, Color(0.4, 0.15, 0.45))
-	draw_circle(Vector2(2, -1), 5.0, Color(0.35, 0.1, 0.4))
-	# Vacuolas (burbujas internas)
-	draw_circle(Vector2(8, -3), 4.0, Color(0.7, 0.5, 0.7, 0.5))
-	draw_circle(Vector2(-7, -5), 3.0, Color(0.7, 0.5, 0.7, 0.5))

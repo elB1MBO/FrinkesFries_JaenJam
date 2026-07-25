@@ -68,13 +68,3 @@ func _spawn_dna() -> void:
 		@warning_ignore("integer_division")
 		frag.dna_value = maxi(1, total / num_frags)
 
-
-# ── Visual: Glóbulo Rojo (disco bicóncavo, rojo) ──────────────
-func _draw() -> void:
-	# Disco exterior
-	draw_circle(Vector2.ZERO, 14.0, Color(0.85, 0.18, 0.15))
-	# Zona más oscura central (forma bicóncava)
-	draw_circle(Vector2.ZERO, 7.0, Color(0.7, 0.12, 0.1))
-	# Brillo para dar volumen
-	draw_circle(Vector2(-4, -4), 5.0, Color(0.95, 0.35, 0.3, 0.5))
-	draw_circle(Vector2(3, 3), 3.0, Color(0.95, 0.3, 0.25, 0.3))
