@@ -22,6 +22,7 @@ func _ready() -> void:
 	EventBus.player_died.connect(_on_player_died)
 	EventBus.round_timer_tick.connect(_on_timer_tick)
 	EventBus.mutation_activated.connect(func(_id: String) -> void: _update_stats())
+	EventBus.stats_changed.connect(_update_stats)
 
 
 # ── Construir toda la UI ──────────────────────────────────────

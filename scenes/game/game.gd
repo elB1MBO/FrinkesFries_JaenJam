@@ -2,7 +2,11 @@ extends Node2D
 
 var arena_half_size: float = GameManager.ARENA_HALF_SIZE
 
-var enemy_scene: PackedScene = preload("res://scenes/enemies/base_enemy.tscn")
+# Escenas de enemigos
+var base_enemy_scene: PackedScene = preload("res://scenes/enemies/base_enemy.tscn")
+var macrophage_scene: PackedScene = preload("res://scenes/enemies/macrophage.tscn")
+var lymphocyte_scene: PackedScene = preload("res://scenes/enemies/lymphocyte_b.tscn")
+var red_blood_cell_scene: PackedScene = preload("res://scenes/enemies/red_blood_cell.tscn")
 
 # Dificultad
 var enemies_per_spawn: int = 2
@@ -55,13 +59,37 @@ func _on_spawn_timer() -> void:
 		_spawn_enemy()
 
 
+func _pick_enemy_scene() -> PackedScene:
+	var roll := randf()
+	var wave := GameManager.current_wave
+	# Piñata: 8% (siempre presente, es neutral)
+	if roll < 0.08:
+		return red_blood_cell_scene
+	# Macrófago: empieza en ola 2, crece hasta 18%
+	var macro_chance := 0.0 if wave < 2 else minf(0.18, 0.08 + wave * 0.02)
+	if roll < 0.08 + macro_chance:
+		return macrophage_scene
+	# Linfocito B: empieza en ola 2, crece hasta 18%
+	var lympho_chance := 0.0 if wave < 2 else minf(0.18, 0.08 + wave * 0.02)
+	if roll < 0.08 + macro_chance + lympho_chance:
+		return lymphocyte_scene
+	# Resto: enemigo base
+	return base_enemy_scene
+
+
 func _spawn_enemy() -> void:
-	var enemy = enemy_scene.instantiate()
+	var scene := _pick_enemy_scene()
+	var enemy = scene.instantiate()
 	enemy.global_position = _random_spawn_pos()
+	# Escalado de dificultad
 	enemy.max_hp += _difficulty_step * 5.0
-	enemy.speed += _difficulty_step * 5.0
-	enemy.xp_reward += _difficulty_step
-	enemy.dna_drop_max += _difficulty_step
+	if enemy.has_method("_physics_process"):
+		if "speed" in enemy:
+			enemy.speed += _difficulty_step * 3.0
+	if "xp_reward" in enemy:
+		enemy.xp_reward += _difficulty_step
+	if "dna_drop_max" in enemy:
+		enemy.dna_drop_max += _difficulty_step
 	enemies_node.add_child(enemy)
 
 

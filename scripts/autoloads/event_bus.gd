@@ -19,9 +19,11 @@ signal player_leveled_up(new_level: int)
 @warning_ignore("unused_signal")
 signal currency_collected(amount: int)
 
-# Mutaciones
+# Mutaciones / Stats
 @warning_ignore("unused_signal")
 signal mutation_activated(mutation_id: String)
+@warning_ignore("unused_signal")
+signal stats_changed()
 
 # Rondas
 @warning_ignore("unused_signal")

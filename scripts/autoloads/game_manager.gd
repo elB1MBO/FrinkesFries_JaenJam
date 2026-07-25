@@ -75,6 +75,7 @@ func add_modifier(stat_name: String, source: String, flat: float = 0.0, percent:
 	if stat_name not in _modifiers:
 		_modifiers[stat_name] = []
 	_modifiers[stat_name].append({"source": source, "flat": flat, "percent": percent})
+	EventBus.stats_changed.emit()
 
 
 func remove_modifiers_by_source(source: String) -> void:
