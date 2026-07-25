@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="3_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/level_up_screen.tscn" id="4_lvlup"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shop_screen.tscn" id="5_shop"]
 
 [node name="Game" type="Node2D" unique_id=979715868]
 script = ExtResource("1_game")
@@ -22,4 +23,6 @@ autostart = true
 
 [node name="HUD" parent="." unique_id=1104489914 instance=ExtResource("3_hud")]
 
-[node name="LevelUpScreen" parent="." unique_id=1219188425 instance=ExtResource("4_lvlup")]
+[node name="LevelUpScreen" parent="." instance=ExtResource("4_lvlup")]
+
+[node name="ShopScreen" parent="." instance=ExtResource("5_shop")]

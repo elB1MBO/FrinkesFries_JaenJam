@@ -1,7 +1,7 @@
 extends Node
-## Estado global del juego: stats, XP, niveles, moneda, mutaciones.
+## Estado global del juego: stats, XP, niveles, moneda, mutaciones, rondas.
 
-enum GameState { PLAYING, PAUSED, GAME_OVER }
+enum GameState { PLAYING, PAUSED, GAME_OVER, SHOPPING }
 
 # ── Estado de partida ──────────────────────────────────────────
 var current_state: GameState = GameState.PLAYING
@@ -10,10 +10,15 @@ var total_kills: int = 0
 var total_currency: int = 0
 var player_level: int = 1
 var player_xp: int = 0
-var xp_to_next_level: int = 10
+var xp_to_next_level: int = 30
 
 # Arena
 const ARENA_HALF_SIZE: float = 600.0
+
+# Tienda
+var reroll_cost: int = 10
+var _reroll_base: int = 10
+var _reroll_increment: int = 5
 
 # ── Stats base del jugador ─────────────────────────────────────
 var base_stats: Dictionary = {
@@ -36,7 +41,7 @@ var active_mutations: Array = []
 
 func _ready() -> void:
 	_setup_input_actions()
-	EventBus.xp_collected.connect(_on_xp_collected)
+	EventBus.xp_gained.connect(_on_xp_gained)
 	EventBus.enemy_killed.connect(_on_enemy_killed)
 	EventBus.currency_collected.connect(_on_currency_collected)
 	EventBus.player_died.connect(_on_player_died)
@@ -49,7 +54,8 @@ func reset() -> void:
 	total_currency = 0
 	player_level = 1
 	player_xp = 0
-	xp_to_next_level = 10
+	xp_to_next_level = 30
+	reroll_cost = _reroll_base
 	_modifiers.clear()
 	active_mutations.clear()
 
@@ -84,7 +90,6 @@ func activate_mutation(mutation_id: String) -> void:
 		return
 	active_mutations.append(mutation_id)
 
-	# Aplicar modificadores de stats pasivos
 	match mutation_id:
 		"reinforced_membrane":
 			add_modifier("max_hp", "reinforced_membrane", 0.0, 0.25)
@@ -96,8 +101,24 @@ func has_mutation(mutation_id: String) -> bool:
 	return mutation_id in active_mutations
 
 
-# ── XP & Level Up ──────────────────────────────────────────────
-func _on_xp_collected(amount: int) -> void:
+# ── Moneda (ADN) ───────────────────────────────────────────────
+func spend_currency(amount: int) -> bool:
+	if total_currency >= amount:
+		total_currency -= amount
+		return true
+	return false
+
+
+func reset_reroll_cost() -> void:
+	reroll_cost = _reroll_base
+
+
+func increment_reroll_cost() -> void:
+	reroll_cost += _reroll_increment
+
+
+# ── XP & Level Up (automática al matar) ───────────────────────
+func _on_xp_gained(amount: int) -> void:
 	player_xp += amount
 	while player_xp >= xp_to_next_level:
 		player_xp -= xp_to_next_level
@@ -107,7 +128,7 @@ func _on_xp_collected(amount: int) -> void:
 
 
 func _calc_xp_threshold(level: int) -> int:
-	# Coste x3: 30, 45, 67, 101, 151, 227...
+	# Coste exponencial: 30, 45, 67, 101, 151, 227...
 	return int(floor(30.0 * pow(1.5, level - 1)))
 
 

@@ -9,11 +9,13 @@ signal player_health_changed(current_hp: float, max_hp: float)
 @warning_ignore("unused_signal")
 signal player_died()
 
-# Progresión
+# Progresión — XP automática al matar
 @warning_ignore("unused_signal")
-signal xp_collected(amount: int)
+signal xp_gained(amount: int)
 @warning_ignore("unused_signal")
 signal player_leveled_up(new_level: int)
+
+# Moneda (ADN)
 @warning_ignore("unused_signal")
 signal currency_collected(amount: int)
 
@@ -21,6 +23,10 @@ signal currency_collected(amount: int)
 @warning_ignore("unused_signal")
 signal mutation_activated(mutation_id: String)
 
-# Rondas (Fase 3)
+# Rondas
 @warning_ignore("unused_signal")
-signal wave_completed(wave_number: int)
+signal round_timer_tick(seconds_left: int)
+@warning_ignore("unused_signal")
+signal round_ended(round_number: int)
+@warning_ignore("unused_signal")
+signal shop_closed()

@@ -5,30 +5,33 @@ var xp_bar: ProgressBar
 var level_label: Label
 var currency_label: Label
 var kill_label: Label
+var round_label: Label
+var timer_label: Label
 var game_over_label: Label
-var stat_labels: Dictionary = {}  # stat_name -> Label
+var stat_labels: Dictionary = {}
 
 
 func _ready() -> void:
 	layer = 10
 	_build_ui()
 	EventBus.player_health_changed.connect(_on_health_changed)
-	EventBus.xp_collected.connect(_on_xp_changed)
+	EventBus.xp_gained.connect(_on_xp_changed)
 	EventBus.player_leveled_up.connect(_on_level_up)
 	EventBus.currency_collected.connect(_on_currency_changed)
 	EventBus.enemy_killed.connect(_on_enemy_killed)
 	EventBus.player_died.connect(_on_player_died)
+	EventBus.round_timer_tick.connect(_on_timer_tick)
 	EventBus.mutation_activated.connect(func(_id: String) -> void: _update_stats())
 
 
-# ── Construir toda la UI ──
+# ── Construir toda la UI ──────────────────────────────────────
 func _build_ui() -> void:
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
-	# HP y XP
+	# ── Esquina superior izquierda: HP + XP ──
 	var left_margin := MarginContainer.new()
 	left_margin.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	left_margin.add_theme_constant_override("margin_left", 16)
@@ -41,20 +44,45 @@ func _build_ui() -> void:
 	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left_margin.add_child(vbox)
 
-	# barra HP
 	hp_bar = _make_bar(Color(0.85, 0.15, 0.15), Color(0.25, 0.05, 0.05, 0.8))
 	var hp_row := _make_bar_row("♥ HP", hp_bar)
 	vbox.add_child(hp_row)
 
-	# barra XP
 	xp_bar = _make_bar(Color(0.2, 0.7, 1.0), Color(0.05, 0.15, 0.25, 0.8))
 	var xp_row := _make_bar_row("★ XP", xp_bar)
 	vbox.add_child(xp_row)
 
-	# Lvl, dinero y nº kills
+	# ── Centro superior: Timer de ronda ──
+	var top_center := MarginContainer.new()
+	top_center.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	top_center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	top_center.add_theme_constant_override("margin_top", 12)
+	top_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(top_center)
+
+	var timer_vbox := VBoxContainer.new()
+	timer_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	timer_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_center.add_child(timer_vbox)
+
+	round_label = Label.new()
+	round_label.text = "Ronda 1"
+	round_label.add_theme_font_size_override("font_size", 16)
+	round_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	timer_vbox.add_child(round_label)
+
+	timer_label = Label.new()
+	timer_label.text = "1:00"
+	timer_label.add_theme_font_size_override("font_size", 28)
+	timer_label.add_theme_color_override("font_color", Color.WHITE)
+	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	timer_vbox.add_child(timer_label)
+
+	# ── Esquina superior derecha: Nivel, ADN, Kills, Stats ──
 	var right_margin := MarginContainer.new()
 	right_margin.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	right_margin.grow_horizontal = Control.GROW_DIRECTION_BEGIN  # <--- ESTO EVITA QUE SALGA FUERA DE LA PANTALLA
+	right_margin.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	right_margin.add_theme_constant_override("margin_right", 16)
 	right_margin.add_theme_constant_override("margin_top", 16)
 	right_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -74,12 +102,11 @@ func _build_ui() -> void:
 	kill_label = _make_label("💀 0", 16, Color(0.8, 0.8, 0.8))
 	rvbox.add_child(kill_label)
 
-	# Separador
+	# Separador + panel de stats
 	var sep := HSeparator.new()
 	sep.add_theme_constant_override("separation", 8)
 	rvbox.add_child(sep)
 
-	# Panel de estadísticas
 	_build_stats_panel(rvbox)
 
 	# ── Game Over (oculto) ──
@@ -94,7 +121,7 @@ func _build_ui() -> void:
 	root.add_child(game_over_label)
 
 
-# Metodos auxiliares
+# ── Helpers ────────────────────────────────────────────────────
 func _make_bar(fill_color: Color, bg_color: Color) -> ProgressBar:
 	var bar := ProgressBar.new()
 	bar.custom_minimum_size = Vector2(200, 20)
@@ -104,20 +131,13 @@ func _make_bar(fill_color: Color, bg_color: Color) -> ProgressBar:
 
 	var bg_style := StyleBoxFlat.new()
 	bg_style.bg_color = bg_color
-	bg_style.corner_radius_top_left = 4
-	bg_style.corner_radius_top_right = 4
-	bg_style.corner_radius_bottom_left = 4
-	bg_style.corner_radius_bottom_right = 4
+	bg_style.set_corner_radius_all(4)
 	bar.add_theme_stylebox_override("background", bg_style)
 
 	var fill_style := StyleBoxFlat.new()
 	fill_style.bg_color = fill_color
-	fill_style.corner_radius_top_left = 4
-	fill_style.corner_radius_top_right = 4
-	fill_style.corner_radius_bottom_left = 4
-	fill_style.corner_radius_bottom_right = 4
+	fill_style.set_corner_radius_all(4)
 	bar.add_theme_stylebox_override("fill", fill_style)
-
 	return bar
 
 
@@ -144,6 +164,7 @@ func _make_label(text: String, size: int, color: Color) -> Label:
 	return lbl
 
 
+# ── Callbacks ──────────────────────────────────────────────────
 func _on_health_changed(current: float, maximum: float) -> void:
 	hp_bar.max_value = maximum
 	hp_bar.value = current
@@ -161,6 +182,7 @@ func _on_level_up(new_level: int) -> void:
 	level_label.modulate = Color(1.0, 1.0, 0.5)
 	var tw := create_tween()
 	tw.tween_property(level_label, "modulate", Color.WHITE, 0.5)
+	_update_stats()
 
 
 func _on_currency_changed(_amount: int) -> void:
@@ -171,12 +193,24 @@ func _on_enemy_killed(_pos: Vector2, _xp: int) -> void:
 	kill_label.text = "💀 %d" % GameManager.total_kills
 
 
+func _on_timer_tick(seconds_left: int) -> void:
+	var mins := seconds_left / 60
+	var secs := seconds_left % 60
+	timer_label.text = "%d:%02d" % [mins, secs]
+	# Rojo cuando queda poco
+	if seconds_left <= 10:
+		timer_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	else:
+		timer_label.add_theme_color_override("font_color", Color.WHITE)
+	round_label.text = "Ronda %d" % GameManager.current_wave
+
+
 func _on_player_died() -> void:
 	game_over_label.visible = true
 
 
+# ── Panel de estadísticas ──────────────────────────────────────
 func _build_stats_panel(parent: VBoxContainer) -> void:
-	# Añadimos un fondo oscuro para que resalte mucho más
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.05, 0.05, 0.1, 0.8)
@@ -198,8 +232,8 @@ func _build_stats_panel(parent: VBoxContainer) -> void:
 	title.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	stats_vbox.add_child(title)
 
-	var sep := HSeparator.new()
-	stats_vbox.add_child(sep)
+	var sep2 := HSeparator.new()
+	stats_vbox.add_child(sep2)
 
 	var stats_info: Array = [
 		["max_hp",       "❤️ HP Máx",     Color(1.0, 0.5, 0.5)],
@@ -216,7 +250,7 @@ func _build_stats_panel(parent: VBoxContainer) -> void:
 		var display_name: String = info[1]
 		var color: Color = info[2]
 		var lbl := Label.new()
-		lbl.add_theme_font_size_override("font_size", 16) # Letra más grande
+		lbl.add_theme_font_size_override("font_size", 16)
 		lbl.add_theme_color_override("font_color", color)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		stat_labels[stat_name] = {"label": lbl, "display_name": display_name}
@@ -229,7 +263,6 @@ func _update_stats() -> void:
 		var info: Dictionary = stat_labels[stat_name]
 		var val: float = GameManager.get_stat(stat_name)
 		var lbl: Label = info.label
-		# Porcentajes para crit y life steal
 		if stat_name in ["crit_chance", "life_steal"]:
 			lbl.text = "%s: %d%%" % [info.display_name, int(val * 100)]
 		else:

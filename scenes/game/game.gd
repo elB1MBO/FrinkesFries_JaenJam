@@ -6,9 +6,12 @@ var enemy_scene: PackedScene = preload("res://scenes/enemies/base_enemy.tscn")
 
 # Dificultad
 var enemies_per_spawn: int = 2
-var difficulty_interval: float = 30.0   # TODO: he puesto 30 como base, podemos ajustarla mas tarde (?)
 var _difficulty_step: int = 0
-var _elapsed: float = 0.0
+
+# Ronda
+var round_duration: float = 60.0
+var _round_timer: float = 60.0
+var _last_tick: int = -1
 
 @onready var player: CharacterBody2D = $Player
 @onready var spawn_timer: Timer = $EnemySpawnTimer
@@ -21,24 +24,30 @@ func _ready() -> void:
 	spawn_timer.wait_time = 1.8
 	spawn_timer.timeout.connect(_on_spawn_timer)
 	spawn_timer.start()
-	# TODO: Dejo un fondo oscuro basico, luego tendremos que ir cambiando este fondo en función del órgano en el que estemos
 	RenderingServer.set_default_clear_color(Color(0.06, 0.06, 0.12))
+	EventBus.shop_closed.connect(_on_shop_closed)
+	_round_timer = round_duration
 
 
 func _process(delta: float) -> void:
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 
-	_elapsed += delta
-	var step := int(_elapsed / difficulty_interval)
-	if step > _difficulty_step:
-		_difficulty_step = step
-		_increase_difficulty()
+	# Timer de ronda
+	_round_timer -= delta
+	var secs_left := int(ceil(maxf(0.0, _round_timer)))
+	if secs_left != _last_tick:
+		_last_tick = secs_left
+		EventBus.round_timer_tick.emit(secs_left)
+
+	if _round_timer <= 0.0:
+		_end_round()
+		return
 
 	queue_redraw()
 
 
-# ── Spawn de enemigos ──
+# ── Spawn de enemigos ──────────────────────────────────────────
 func _on_spawn_timer() -> void:
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
@@ -49,15 +58,14 @@ func _on_spawn_timer() -> void:
 func _spawn_enemy() -> void:
 	var enemy = enemy_scene.instantiate()
 	enemy.global_position = _random_spawn_pos()
-	# Escalar stats con la dificultad
 	enemy.max_hp += _difficulty_step * 5.0
 	enemy.speed += _difficulty_step * 5.0
-	enemy.xp_value += _difficulty_step
+	enemy.xp_reward += _difficulty_step
+	enemy.dna_drop_max += _difficulty_step
 	enemies_node.add_child(enemy)
 
 
 func _random_spawn_pos() -> Vector2:
-	# TODO: Ahora mismo spawnean siempre fuera de la pantalla, pero dentro del mapa. Lo dejamos así? o que spawneen dentro tmb?
 	var angle := randf() * TAU
 	var dist := randf_range(450.0, 650.0)
 	var pos := player.global_position + Vector2.from_angle(angle) * dist
@@ -66,14 +74,36 @@ func _random_spawn_pos() -> Vector2:
 	return pos
 
 
-# ── Escalado de dificultad ──
+# ── Fin de ronda ───────────────────────────────────────────────
+func _end_round() -> void:
+	GameManager.current_state = GameManager.GameState.SHOPPING
+	spawn_timer.stop()
+
+	# Limpiar arena
+	for enemy in enemies_node.get_children():
+		enemy.queue_free()
+	for proj in projectiles_node.get_children():
+		proj.queue_free()
+
+	EventBus.round_ended.emit(GameManager.current_wave)
+
+
+func _on_shop_closed() -> void:
+	GameManager.current_wave += 1
+	GameManager.current_state = GameManager.GameState.PLAYING
+	_difficulty_step += 1
+	_increase_difficulty()
+	_round_timer = round_duration
+	_last_tick = -1
+	spawn_timer.start()
+
+
 func _increase_difficulty() -> void:
 	enemies_per_spawn = mini(enemies_per_spawn + 1, 20)
 	spawn_timer.wait_time = maxf(spawn_timer.wait_time - 0.15, 0.4)
 
 
-# ── Dibujar borde del mapa ── 
-	# TODO: Cada mapa va a ser igual, cambiando solo estéticamente?
+# ── Dibujar borde del mapa ─────────────────────────────────────
 func _draw() -> void:
 	var rect := Rect2(
 		Vector2(-arena_half_size, -arena_half_size),
