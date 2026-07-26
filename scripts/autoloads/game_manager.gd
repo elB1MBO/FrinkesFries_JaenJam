@@ -193,3 +193,9 @@ func _add_action(action_name: String, keys: Array) -> void:
 			var ev := InputEventKey.new()
 			ev.physical_keycode = key
 			InputMap.action_add_event(action_name, ev)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F3:
+			add_modifier("attack", "cheat_f3", 300.0, 0.0)
+			print("CHEAT F3: +300 Ataque!")

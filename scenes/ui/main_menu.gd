@@ -5,6 +5,7 @@ extends Control
 @onready var sfx_slider: HSlider = $OptionsPanel/VBox/SFXSlider
 
 func _ready() -> void:
+	AudioManager.play_menu_music()
 	$VBoxContainer/BtnPlay.pressed.connect(_on_play_pressed)
 	$VBoxContainer/BtnOptions.pressed.connect(_on_options_pressed)
 	$VBoxContainer/BtnQuit.pressed.connect(_on_quit_pressed)

@@ -18,6 +18,8 @@ var projectile_scene = preload("res://scenes/enemies/boss_corazon_projectile.tsc
 var crush_scene = preload("res://scenes/enemies/boss_corazon_crush.tscn")
 var homing_scene = preload("res://scenes/enemies/boss_corazon_homing.tscn")
 
+var _heart_sfx: AudioStreamPlayer2D
+
 func _ready() -> void:
 	add_to_group("enemies")
 	set_meta("is_boss", true)
@@ -26,15 +28,20 @@ func _ready() -> void:
 	crush_timer.timeout.connect(_on_crush_attack)
 	homing_timer.timeout.connect(_on_spawn_homing)
 	
+	_heart_sfx = AudioStreamPlayer2D.new()
+	_heart_sfx.stream = preload("res://assets/audio/wiii_corazones_boss.mp3")
+	_heart_sfx.volume_db = 0.0
+	add_child(_heart_sfx)
+	
 	# Escalar vida según el nivel
-	var scaling = pow(1.5, GameManager.current_level_index)
+	var scaling = pow(1.25, GameManager.current_level_index)
 	max_hp *= scaling
 	current_hp = max_hp
 	damage *= scaling
 	
-	crush_timer.start(4.0)
+	crush_timer.start(3.0)
 	shoot_timer.start(2.5)
-	homing_timer.start(3.0)
+	homing_timer.start(2.5)
 	
 	EventBus.boss_spawned.emit(max_hp)
 	EventBus.boss_health_changed.emit(current_hp, max_hp)
@@ -86,12 +93,13 @@ func _on_crush_attack() -> void:
 		_spawn_crush()
 	
 	if current_hp <= (max_hp * 0.25):
-		crush_timer.start(2.0)
+		crush_timer.start(1.5)
 	else:
-		crush_timer.start(4.0)
+		crush_timer.start(3.0)
 
-func _spawn_homing() -> void:
+func _on_spawn_homing() -> void:
 	if _is_dead or not is_instance_valid(player): return
+	_heart_sfx.play()
 	var homing = homing_scene.instantiate()
 	homing.global_position = global_position
 	get_parent().add_child(homing)
@@ -126,6 +134,12 @@ func heal(amount: float) -> void:
 func _die() -> void:
 	_is_dead = true
 	EventBus.boss_defeated.emit()
-	EventBus.enemy_died.emit(global_position, xp_reward)
-	GameManager.add_currency(500) # Gran recompensa
-	queue_free()
+	EventBus.enemy_killed.emit(global_position, xp_reward)
+	EventBus.currency_collected.emit(500) # Gran recompensa
+	
+	sprite.visible = false
+	if has_node("CollisionShape2D"):
+		$CollisionShape2D.set_deferred("disabled", true)
+	
+	# Eliminarse tras el delay de victoria para que los sonidos de muerte se procesen si colgaran de él
+	get_tree().create_timer(4.0, false).timeout.connect(func(): queue_free())

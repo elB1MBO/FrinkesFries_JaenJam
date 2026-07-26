@@ -9,7 +9,7 @@ var _cards_container: HBoxContainer
 var _reroll_btn: Button
 var _continue_btn: Button
 var _current_offers: Array = []
-
+var _reroll_sfx: AudioStreamPlayer
 
 func _ready() -> void:
 	layer = 20
@@ -18,6 +18,10 @@ func _ready() -> void:
 	_hide_screen()
 	EventBus.round_ended.connect(_on_round_ended)
 
+	_reroll_sfx = AudioStreamPlayer.new()
+	_reroll_sfx.stream = preload("res://assets/audio/monedas_reroll_tienda.mp3")
+	_reroll_sfx.volume_db = -5.0
+	add_child(_reroll_sfx)
 
 # ── UI ─────────────────────────────────────────────────────────
 func _build_ui() -> void:
@@ -157,8 +161,8 @@ func _build_cards() -> void:
 	if _current_offers.is_empty():
 		var lbl := Label.new()
 		lbl.text = "¡Todas las mutaciones adquiridas!"
-		lbl.add_theme_font_size_override("font_size", 20)
-		lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		lbl.add_theme_font_size_override("font_size", 24)
+		lbl.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
 		_cards_container.add_child(lbl)
 		return
 
@@ -172,11 +176,10 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(220, 310)
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.16, 0.95)
-	style.border_color = data.color
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(14)
+	var style := StyleBoxTexture.new()
+	style.texture = preload("res://assets/sprites/tarjetas_normal_hover_click.png")
+	style.region_rect = Rect2(0, 0, 32, 64)
+	style.modulate_color = Color(0.6, 0.6, 0.6, 1.0)
 	style.content_margin_left = 16
 	style.content_margin_right = 16
 	style.content_margin_top = 18
@@ -190,6 +193,13 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 
 	# Icono
 	var icon_c := CenterContainer.new()
+	
+	var frame := TextureRect.new()
+	frame.texture = preload("res://assets/sprites/marco_mejoras.png")
+	frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	frame.custom_minimum_size = Vector2(48, 48)
+	frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_c.add_child(frame)
 	if data.has("icon_path") and ResourceLoader.exists(data.icon_path):
 		var icon := TextureRect.new()
 		icon.texture = load(data.icon_path)
@@ -208,8 +218,10 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 	# Nombre
 	var name_lbl := Label.new()
 	name_lbl.text = data.name
-	name_lbl.add_theme_font_size_override("font_size", 19)
+	name_lbl.add_theme_font_size_override("font_size", 28)
 	name_lbl.add_theme_color_override("font_color", data.color)
+	name_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	name_lbl.add_theme_constant_override("outline_size", 6)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(name_lbl)
@@ -217,8 +229,10 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 	# Rareza (Reemplazado por Flavor Text)
 	var flavor_lbl := Label.new()
 	flavor_lbl.text = data.get("flavor", "\"Lorem ipsum dolor sit amet...\"")
-	flavor_lbl.add_theme_font_size_override("font_size", 12)
-	flavor_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 0.8))
+	flavor_lbl.add_theme_font_size_override("font_size", 18)
+	flavor_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	flavor_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	flavor_lbl.add_theme_constant_override("outline_size", 4)
 	flavor_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flavor_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	flavor_lbl.custom_minimum_size.x = 180
@@ -227,8 +241,10 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 	# Descripción
 	var desc_lbl := Label.new()
 	desc_lbl.text = data.description
-	desc_lbl.add_theme_font_size_override("font_size", 13)
-	desc_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
+	desc_lbl.add_theme_font_size_override("font_size", 20)
+	desc_lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	desc_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	desc_lbl.add_theme_constant_override("outline_size", 4)
 	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	desc_lbl.custom_minimum_size.x = 180
@@ -238,9 +254,11 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 	var price: int = data.get("price", 50)
 	var price_lbl := Label.new()
 	price_lbl.text = "🧬 %d ADN" % price
-	price_lbl.add_theme_font_size_override("font_size", 18)
+	price_lbl.add_theme_font_size_override("font_size", 26)
 	var can_afford := GameManager.total_currency >= price
 	price_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5) if can_afford else Color(0.6, 0.3, 0.3))
+	price_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	price_lbl.add_theme_constant_override("outline_size", 6)
 	price_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(price_lbl)
 
@@ -250,20 +268,21 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 
 	var base_color: Color = data.color
 	panel.mouse_entered.connect(func() -> void:
-		style.border_color = base_color.lightened(0.4)
-		style.set_border_width_all(4)
+		style.region_rect = Rect2(32, 0, 32, 64)
+		style.modulate_color = Color(1.0, 1.0, 1.0, 1.0)
 	)
 	panel.mouse_exited.connect(func() -> void:
-		style.border_color = base_color
-		style.set_border_width_all(3)
+		style.region_rect = Rect2(0, 0, 32, 64)
+		style.modulate_color = Color(0.6, 0.6, 0.6, 1.0)
 	)
 
 	return panel
 
 
 # ── Acciones ───────────────────────────────────────────────────
-func _on_shop_card_input(event: InputEvent, mutation_id: String, price: int, panel: PanelContainer, _style: StyleBoxFlat) -> void:
+func _on_shop_card_input(event: InputEvent, mutation_id: String, price: int, panel: PanelContainer, _style: StyleBoxTexture) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_style.region_rect = Rect2(64, 0, 32, 64)
 		if GameManager.spend_currency(price):
 			GameManager.activate_mutation(mutation_id)
 			# Quitar carta comprada con animación
@@ -279,6 +298,7 @@ func _on_shop_card_input(event: InputEvent, mutation_id: String, price: int, pan
 
 func _on_reroll() -> void:
 	if GameManager.spend_currency(GameManager.reroll_cost):
+		_reroll_sfx.play()
 		GameManager.increment_reroll_cost()
 		_roll_offers()
 		_update_currency()

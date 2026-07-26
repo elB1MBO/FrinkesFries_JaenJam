@@ -75,14 +75,25 @@ static var MUTATIONS: Dictionary = {
 		"rarity": Rarity.RARE,
 		"color": Color(0.2, 0.8, 0.6),
 		"price": 400,
+		"icon_path": "res://assets/sprites/infeccion_oportunista.png",
 	},
-
+	"bacteriofago": {
+		"name": "Bacteriófago",
+		"description": "Un pequeño bacteriófago se unirá a ti, apareciendo para eliminar a tus enemigos.",
+		"flavor": "¿Es un pájaro, es un avión?... No, es... ¡un bacteriófago!",
+		"rarity": Rarity.RARE,
+		"color": Color(0.651, 0.392, 0.114, 1.0),
+		"price": 600,
+		"icon_path": "res://assets/sprites/bacteriofago.png",
+	},
+	
 	"minor_health": {
 		"name": "HP Menor",
 		"description": "+10% Vida Máxima.",
 		"rarity": Rarity.COMMON,
 		"color": Color(0.9, 0.7, 0.7),
 		"price": 50,
+		"icon_path": "res://assets/sprites/vida_maxima.png",
 	},
 	"minor_attack": {
 		"name": "Ataque Menor",
@@ -98,6 +109,7 @@ static var MUTATIONS: Dictionary = {
 		"rarity": Rarity.COMMON,
 		"color": Color(0.6, 0.9, 0.7),
 		"price": 50,
+		"icon_path": "res://assets/sprites/velocidad_de_movimiento.png",
 	},
 	"minor_atk_speed": {
 		"name": "Velocidad Menor",
@@ -105,6 +117,7 @@ static var MUTATIONS: Dictionary = {
 		"rarity": Rarity.COMMON,
 		"color": Color(0.9, 0.9, 0.5),
 		"price": 50,
+		"icon_path": "res://assets/sprites/velocidad_de_ataque.png",
 	},
 	"minor_defense": {
 		"name": "Defensa Menor",

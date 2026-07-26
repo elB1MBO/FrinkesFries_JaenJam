@@ -23,7 +23,8 @@ var wave_scene: PackedScene = preload("res://scenes/projectiles/boss_levetiracet
 
 @onready var shoot_timer: Timer = $ShootTimer
 @onready var special_timer: Timer = $SpecialTimer
-
+var _wave_sfx: AudioStreamPlayer2D
+var _shoot_sfx: AudioStreamPlayer2D
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -31,6 +32,17 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player")
 	shoot_timer.timeout.connect(_on_shoot)
 	special_timer.timeout.connect(_on_special_attack)
+	
+	_wave_sfx = AudioStreamPlayer2D.new()
+	_wave_sfx.stream = preload("res://assets/audio/onda_expansiva_boss_cerebro.mp3")
+	_wave_sfx.volume_db = 0.0
+	add_child(_wave_sfx)
+	
+	_shoot_sfx = AudioStreamPlayer2D.new()
+	_shoot_sfx.stream = preload("res://assets/audio/lanzamiento_neurona_boss_cerebro.mp3")
+	_shoot_sfx.volume_db = -24.0
+	add_child(_shoot_sfx)
+	
 	_on_acquire()
 
 
@@ -86,6 +98,8 @@ func _on_shoot() -> void:
 	var dir := (player.global_position - global_position).normalized()
 	var proj_parent = get_tree().current_scene.get_node("Projectiles")
 	
+	_shoot_sfx.play()
+	
 	# Disparo de múltiples círculos azules en abanico
 	var base_angle := dir.angle()
 	for i in range(-1, 2):
@@ -100,6 +114,8 @@ func _on_special_attack() -> void:
 	if _is_dead or not player or not is_instance_valid(player): return
 	var dir := (player.global_position - global_position).normalized()
 	var proj_parent = get_tree().current_scene.get_node("Projectiles")
+	
+	_wave_sfx.play()
 	
 	var wave = ObjectPool.acquire(wave_scene, proj_parent, global_position)
 	wave.direction = dir

@@ -4,8 +4,8 @@ extends CharacterBody2D
 @export var speed: float = 80.0
 @export var damage: float = 8.0
 @export var xp_reward: int = 5    # XP directa al morir
-@export var dna_drop_min: int = 1
-@export var dna_drop_max: int = 1
+@export var dna_drop_min: int = 2
+@export var dna_drop_max: int = 2
 
 var current_hp: float
 var player: Node2D = null

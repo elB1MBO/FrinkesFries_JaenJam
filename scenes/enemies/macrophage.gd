@@ -5,8 +5,8 @@ extends CharacterBody2D
 @export var speed: float = 40.0
 @export var damage: float = 25.0
 @export var xp_reward: int = 15
-@export var dna_drop_min: int = 10
-@export var dna_drop_max: int = 10
+@export var dna_drop_min: int = 20
+@export var dna_drop_max: int = 20
 
 var current_hp: float
 var player: Node2D = null
@@ -23,6 +23,7 @@ func _ready() -> void:
 
 func _on_acquire() -> void:
 	current_hp = max_hp
+	_is_dead = false
 	modulate = Color.WHITE
 	_stun_timer = 0.0
 	_is_dead = false
@@ -51,13 +52,13 @@ func _physics_process(delta: float) -> void:
 
 
 func take_damage(amount: float) -> void:
-	if _is_dead:
-		return
+	if _is_dead: return
 	current_hp -= amount
 	modulate = Color(2.0, 2.0, 2.0)
 	var tw := create_tween()
 	tw.tween_property(self, "modulate", Color.WHITE, 0.12)
 	if current_hp <= 0.0:
+		_is_dead = true
 		_die()
 
 

@@ -6,16 +6,19 @@ var current_hp: float
 
 var projectile_scene: PackedScene = preload("res://scenes/projectiles/projectile.tscn")
 var orbital_cell_scene: PackedScene = preload("res://scenes/mutations/orbital_cell.tscn")
+var bacteriofago_attack_scene: PackedScene = preload("res://scenes/mutations/bacteriofago_attack.tscn")
 
 @onready var attack_timer: Timer = $AttackTimer
 @onready var damage_cooldown: Timer = $DamageCooldown
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var anim_timer: Timer = $AnimTimer
+@onready var bacteriofago_timer: Timer = $BacteriofagoTimer
 
 var anim_frame_toggle: int = 0
 
 # Estado de mutaciones
 var _regen_timer: float = 0.0
+var _shoot_sfx: AudioStreamPlayer
 
 
 var _slow_amount: float = 0.0
@@ -33,8 +36,16 @@ func _ready() -> void:
 	_update_attack_speed()
 	attack_timer.timeout.connect(_on_attack_timer_timeout)
 	anim_timer.timeout.connect(_on_anim_timer_timeout)
+	bacteriofago_timer.timeout.connect(_on_spawn_bacteriofago)
 	EventBus.player_health_changed.emit(current_hp, GameManager.get_stat("max_hp"))
 	EventBus.mutation_activated.connect(_on_mutation_activated)
+	
+	_shoot_sfx = AudioStreamPlayer.new()
+	_shoot_sfx.stream = preload("res://assets/audio/disparo_virus.mp3")
+	_shoot_sfx.volume_db = -26.0
+	_shoot_sfx.max_polyphony = 5
+	add_child(_shoot_sfx)
+	
 	_update_sprite_state()
 
 
@@ -107,6 +118,7 @@ func _find_nearest_enemy() -> Node2D:
 
 
 func _shoot_at(target_pos: Vector2) -> void:
+	_shoot_sfx.play()
 	var proj_parent = get_tree().current_scene.get_node("Projectiles")
 	var proj = ObjectPool.acquire(projectile_scene, proj_parent, global_position)
 	proj.direction = (target_pos - global_position).normalized()
@@ -132,6 +144,7 @@ func take_damage(amount: float, source_pos: Vector2 = Vector2.ZERO) -> void:
 	var defense := GameManager.get_stat("defense")
 	var actual := maxf(1.0, amount - defense)
 	current_hp -= actual
+	EventBus.player_damaged.emit()
 	EventBus.player_health_changed.emit(current_hp, GameManager.get_stat("max_hp"))
 	_update_sprite_state()
 
@@ -164,6 +177,9 @@ func apply_slow(amount: float, duration: float) -> void:
 # ── Mutaciones: aplicación ─────────────────────────────────────
 func _on_mutation_activated(mutation_id: String) -> void:
 	match mutation_id:
+		"bacteriofago":
+			if bacteriofago_timer.is_stopped():
+				bacteriofago_timer.start(6.0)
 		"creatina_illo":
 			var tw := create_tween()
 			tw.tween_property(self, "scale", scale * 1.1, 0.5)
@@ -194,6 +210,15 @@ func _process_regen(delta: float) -> void:
 
 
 
+
+func _on_spawn_bacteriofago() -> void:
+	var nearest := _find_nearest_enemy()
+	if not nearest: return
+	
+	var atk = bacteriofago_attack_scene.instantiate()
+	atk.global_position = nearest.global_position
+	atk.damage = GameManager.get_stat("attack") * 2.0
+	get_parent().add_child(atk)
 
 func _trigger_reactive_spikes() -> void:
 	var atk := GameManager.get_stat("attack") * 0.5

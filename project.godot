@@ -24,6 +24,7 @@ config/icon="res://icon.svg"
 EventBus="*res://scripts/autoloads/event_bus.gd"
 GameManager="*res://scripts/autoloads/game_manager.gd"
 ObjectPool="*res://scripts/autoloads/object_pool.gd"
+AudioManager="*res://scripts/autoloads/audio_manager.tscn"
 
 [display]
 
@@ -31,6 +32,11 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[gui]
+
+theme/custom_font="res://assets/fonts/Jersey10-Regular.ttf"
+theme/default_font_size=32
 
 [layer_names]
 

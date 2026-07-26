@@ -39,9 +39,3 @@ func _on_body_entered(body: Node2D) -> void:
 		if body.has_method("apply_attack_slow"):
 			body.apply_attack_slow(0.5, 3.0) # 50% slow for 3 seconds
 	ObjectPool.call_deferred("release", self)
-
-
-func _draw() -> void:
-	# Círculo azul intenso (tamaño x2)
-	draw_circle(Vector2.ZERO, 16.0, Color(0.2, 0.4, 1.0))
-	draw_circle(Vector2.ZERO, 10.0, Color(0.5, 0.8, 1.0))

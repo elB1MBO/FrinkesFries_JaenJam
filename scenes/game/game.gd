@@ -39,6 +39,7 @@ func _ready() -> void:
 	_update_level_aesthetics()
 	EventBus.shop_closed.connect(_on_shop_closed)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
+	EventBus.boss_defeated_acknowledged.connect(func(): call_deferred("_end_round"))
 	_round_timer = round_duration
 	# Emitir señal de nivel inicial para HUD
 	call_deferred("_emit_initial_level")
@@ -104,7 +105,7 @@ func _on_spawn_timer() -> void:
 func _spawn_boss() -> void:
 	var boss: Node2D
 	# Nivel 0 = Pulmones -> John Rapamune
-	var multiplier := pow(1.5, GameManager.current_level_index)
+	var multiplier := pow(1.25, GameManager.current_level_index)
 	
 	if GameManager.current_level_index == 0:
 		var spawn_pos := Vector2(0, -arena_half_size + 100.0) # Centro superior
@@ -148,14 +149,14 @@ func _pick_enemy_scene() -> PackedScene:
 	if roll < current_prob:
 		return macrophage_scene
 		
-	# Linfocito B: empieza en ola 2, crece hasta 15%
-	var lympho_b_chance := 0.0 if wave < 2 else minf(0.15, 0.05 + wave * 0.02)
+	# Linfocito B: empieza en ola 2, crece hasta 20%
+	var lympho_b_chance := 0.0 if wave < 2 else minf(0.20, 0.10 + wave * 0.02)
 	current_prob += lympho_b_chance
 	if roll < current_prob:
 		return lymphocyte_scene
 		
-	# Linfocito T: empieza en ola 3, crece hasta 15%
-	var lympho_t_chance := 0.0 if wave < 3 else minf(0.15, 0.05 + wave * 0.02)
+	# Linfocito T: empieza en ola 3, crece hasta 20%
+	var lympho_t_chance := 0.0 if wave < 3 else minf(0.20, 0.10 + wave * 0.02)
 	current_prob += lympho_t_chance
 	if roll < current_prob:
 		return lymphocyte_t_scene
@@ -167,20 +168,26 @@ func _pick_enemy_scene() -> PackedScene:
 func _spawn_enemy() -> void:
 	var scene := _pick_enemy_scene()
 	var enemy = ObjectPool.acquire(scene, enemies_node, _random_spawn_pos())
-	# Ajustar estadísticas según el multiplicador de nivel (1.5x por nivel)
-	var multiplier := pow(1.5, GameManager.current_level_index)
-	enemy.max_hp *= multiplier
-	enemy.current_hp = enemy.max_hp
 	
+	if not enemy.has_meta("base_stats_saved"):
+		enemy.set_meta("base_stats_saved", true)
+		if "max_hp" in enemy: enemy.set_meta("base_max_hp", enemy.max_hp)
+		if "speed" in enemy: enemy.set_meta("base_speed", enemy.speed)
+		if "xp_reward" in enemy: enemy.set_meta("base_xp_reward", enemy.xp_reward)
+		if "dna_drop_max" in enemy: enemy.set_meta("base_dna_drop_max", enemy.dna_drop_max)
+	
+	# Ajustar estadísticas según el multiplicador de nivel (1.25x por nivel)
+	var multiplier := pow(1.25, GameManager.current_level_index)
+	
+	if "max_hp" in enemy:
+		enemy.max_hp = enemy.get_meta("base_max_hp") * multiplier
+		enemy.current_hp = enemy.max_hp
 	if "speed" in enemy:
-		if enemy.name.begins_with("Lymphocyte"):
-			enemy.speed *= pow(1.1, GameManager.current_level_index) # Un poco menos de speed
+		enemy.speed = enemy.get_meta("base_speed")
 	if "xp_reward" in enemy:
-		enemy.xp_reward = int(enemy.xp_reward * multiplier)
+		enemy.xp_reward = int(enemy.get_meta("base_xp_reward") * multiplier)
 	if "dna_drop_max" in enemy:
-		enemy.dna_drop_max = int(enemy.dna_drop_max * multiplier)
-	# add_child is handled by ObjectPool
-	pass
+		enemy.dna_drop_max = int(enemy.get_meta("base_dna_drop_max") * multiplier)
 
 
 func _random_spawn_pos() -> Vector2:
@@ -194,6 +201,15 @@ func _random_spawn_pos() -> Vector2:
 
 # ── Fin de ronda ───────────────────────────────────────────────
 func _end_round() -> void:
+	if GameManager.current_level_index == GameManager.LEVELS.size() - 1 and GameManager.current_round_in_level == 5:
+		spawn_timer.stop()
+		get_tree().create_timer(3.0, false).timeout.connect(func():
+			GameManager.current_state = GameManager.GameState.VICTORY
+			get_tree().paused = true
+			EventBus.game_won.emit()
+		)
+		return
+
 	GameManager.current_state = GameManager.GameState.SHOPPING
 	spawn_timer.stop()
 
@@ -245,7 +261,8 @@ func _on_shop_closed() -> void:
 
 func _on_boss_defeated() -> void:
 	if GameManager.current_state == GameManager.GameState.PLAYING:
-		call_deferred("_end_round")
+		if GameManager.current_level_index == GameManager.LEVELS.size() - 1:
+			call_deferred("_end_round")
 
 
 # ── Dibujar borde del mapa ─────────────────────────────────────

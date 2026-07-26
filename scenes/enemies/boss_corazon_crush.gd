@@ -9,6 +9,7 @@ var rainbow_alpha := 0.0
 var rainbow_width := 0.0
 
 @onready var collision: CollisionShape2D = $CollisionShape2D
+var _sfx: AudioStreamPlayer2D
 
 var rainbow_colors = [
 	Color(1, 0, 0),       # Red
@@ -24,6 +25,11 @@ func _ready() -> void:
 	collision_layer = 8
 	collision_mask = 1
 	body_entered.connect(_on_body_entered)
+	
+	_sfx = AudioStreamPlayer2D.new()
+	_sfx.stream = preload("res://assets/audio/rayo_magico_arcoiris_boss.mp3")
+	_sfx.volume_db = 0.0
+	add_child(_sfx)
 	
 	collision.set_deferred("disabled", true)
 	
@@ -53,6 +59,7 @@ func _draw() -> void:
 			draw_rect(rect, c)
 
 func _drop_lightning() -> void:
+	_sfx.play()
 	# El rayo impacta instantáneamente
 	collision.set_deferred("disabled", false)
 	shadow_alpha = 0.0 # Ocultar la sombra de aviso al impactar

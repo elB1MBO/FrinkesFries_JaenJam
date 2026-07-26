@@ -14,7 +14,7 @@ func _ready() -> void:
 	add_to_group("enemies") # Para que los disparos del jugador lo dañen
 	player = get_tree().get_first_node_in_group("player")
 	
-	var multiplier = pow(1.5, GameManager.current_level_index)
+	var multiplier = pow(1.25, GameManager.current_level_index)
 	max_hp *= multiplier
 	current_hp = max_hp
 	damage *= multiplier

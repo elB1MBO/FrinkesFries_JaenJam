@@ -9,12 +9,12 @@ var _cards_container: HBoxContainer
 var _current_choices: Array = []
 
 const STAT_UPGRADES: Array = [
-	{"stat": "max_hp",       "display": "+10 HP Máx",         "flat": 10.0,  "percent": 0.0,  "color": Color(1.0, 0.5, 0.5)},
-	{"stat": "attack",       "display": "+3 Ataque",          "flat": 3.0,   "percent": 0.0,  "color": Color(1.0, 0.7, 0.3)},
-	{"stat": "defense",      "display": "+2 Defensa",         "flat": 2.0,   "percent": 0.0,  "color": Color(0.5, 0.7, 1.0)},
-	{"stat": "attack_speed", "display": "+10% Vel. Ataque",   "flat": 0.0,   "percent": 0.10, "color": Color(1.0, 1.0, 0.4)},
-	{"stat": "move_speed",   "display": "+5% Vel. Movim.",    "flat": 0.0,   "percent": 0.05, "color": Color(0.4, 1.0, 0.6)},
-	{"stat": "luck",         "display": "+5 Suerte",          "flat": 5.0,   "percent": 0.0,  "color": Color(0.3, 1.0, 0.5)},
+	{"stat": "max_hp",       "display": "+10 HP Máx",         "flat": 10.0,  "percent": 0.0,  "color": Color(1.0, 0.5, 0.5), "icon_path": "res://assets/sprites/vida_maxima.png", "emoji": "❤️"},
+	{"stat": "attack",       "display": "+3 Ataque",          "flat": 3.0,   "percent": 0.0,  "color": Color(1.0, 0.7, 0.3), "icon_path": "res://assets/sprites/ataque.png", "emoji": "⚔️"},
+	{"stat": "defense",      "display": "+2 Defensa",         "flat": 2.0,   "percent": 0.0,  "color": Color(0.5, 0.7, 1.0), "icon_path": "res://assets/sprites/defensa.png", "emoji": "🛡️"},
+	{"stat": "attack_speed", "display": "+10% Vel. Ataque",   "flat": 0.0,   "percent": 0.10, "color": Color(1.0, 1.0, 0.4), "icon_path": "res://assets/sprites/velocidad_de_ataque.png", "emoji": "⚡"},
+	{"stat": "move_speed",   "display": "+5% Vel. Movim.",    "flat": 0.0,   "percent": 0.05, "color": Color(0.4, 1.0, 0.6), "icon_path": "res://assets/sprites/velocidad_de_movimiento.png", "emoji": "🏃"},
+	{"stat": "luck",         "display": "+5 Suerte",          "flat": 5.0,   "percent": 0.0,  "color": Color(0.3, 1.0, 0.5), "emoji": "🍀"},
 ]
 
 
@@ -108,11 +108,10 @@ func _create_stat_card(upgrade: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(200, 220)
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.16, 0.95)
-	style.border_color = upgrade.color
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(14)
+	var style := StyleBoxTexture.new()
+	style.texture = preload("res://assets/sprites/tarjetas_normal_hover_click.png")
+	style.region_rect = Rect2(0, 0, 32, 64)
+	style.modulate_color = Color(0.6, 0.6, 0.6, 1.0)
 	style.content_margin_left = 18
 	style.content_margin_right = 18
 	style.content_margin_top = 24
@@ -124,12 +123,34 @@ func _create_stat_card(upgrade: Dictionary) -> PanelContainer:
 	vbox.add_theme_constant_override("separation", 16)
 	panel.add_child(vbox)
 
-	# Icono (cuadrado de color)
+	# Icono
 	var icon_c := CenterContainer.new()
-	var icon := ColorRect.new()
-	icon.custom_minimum_size = Vector2(40, 40)
-	icon.color = upgrade.color
-	icon_c.add_child(icon)
+	
+	var frame := TextureRect.new()
+	frame.texture = preload("res://assets/sprites/marco_mejoras.png")
+	frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	frame.custom_minimum_size = Vector2(48, 48)
+	frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_c.add_child(frame)
+	
+	# Usar TextureRect para la imagen en lugar de ColorRect
+	if upgrade.has("icon_path") and ResourceLoader.exists(upgrade.icon_path):
+		var icon := TextureRect.new()
+		icon.texture = load(upgrade.icon_path)
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = Vector2(40, 40)
+		icon_c.add_child(icon)
+	else:
+		var emoji_lbl := Label.new()
+		emoji_lbl.text = upgrade.get("emoji", "❓")
+		emoji_lbl.add_theme_font_size_override("font_size", 28)
+		emoji_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		emoji_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		emoji_lbl.custom_minimum_size = Vector2(40, 40)
+		icon_c.add_child(emoji_lbl)
+		
 	vbox.add_child(icon_c)
 
 	# Texto de la mejora
@@ -137,6 +158,8 @@ func _create_stat_card(upgrade: Dictionary) -> PanelContainer:
 	name_lbl.text = upgrade.display
 	name_lbl.add_theme_font_size_override("font_size", 22)
 	name_lbl.add_theme_color_override("font_color", upgrade.color)
+	name_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	name_lbl.add_theme_constant_override("outline_size", 4)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	name_lbl.custom_minimum_size.x = 160
@@ -151,6 +174,8 @@ func _create_stat_card(upgrade: Dictionary) -> PanelContainer:
 		current_lbl.text = "Actual: %d" % int(current_val)
 	current_lbl.add_theme_font_size_override("font_size", 14)
 	current_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	current_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	current_lbl.add_theme_constant_override("outline_size", 3)
 	current_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(current_lbl)
 
@@ -160,19 +185,20 @@ func _create_stat_card(upgrade: Dictionary) -> PanelContainer:
 
 	var base_color: Color = upgrade.color
 	panel.mouse_entered.connect(func() -> void:
-		style.border_color = base_color.lightened(0.4)
-		style.set_border_width_all(4)
+		style.region_rect = Rect2(32, 0, 32, 64)
+		style.modulate_color = Color(1.0, 1.0, 1.0, 1.0)
 	)
 	panel.mouse_exited.connect(func() -> void:
-		style.border_color = base_color
-		style.set_border_width_all(3)
+		style.region_rect = Rect2(0, 0, 32, 64)
+		style.modulate_color = Color(0.6, 0.6, 0.6, 1.0)
 	)
 
 	return panel
 
 
-func _on_card_input(event: InputEvent, upgrade: Dictionary, _style: StyleBoxFlat) -> void:
+func _on_card_input(event: InputEvent, upgrade: Dictionary, _style: StyleBoxTexture) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_style.region_rect = Rect2(64, 0, 32, 64)
 		_select_stat(upgrade)
 
 

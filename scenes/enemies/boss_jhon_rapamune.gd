@@ -20,7 +20,8 @@ var projectile_scene: PackedScene = preload("res://scenes/projectiles/boss_proje
 
 @onready var shoot_timer: Timer = $ShootTimer
 @onready var minion_timer: Timer = $MinionTimer
-
+var _shoot_sfx: AudioStreamPlayer2D
+var _minion_sfx: AudioStreamPlayer2D
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -28,6 +29,17 @@ func _ready() -> void:
 	player = get_tree().get_first_node_in_group("player")
 	shoot_timer.timeout.connect(_on_shoot)
 	minion_timer.timeout.connect(_on_spawn_minions)
+	
+	_shoot_sfx = AudioStreamPlayer2D.new()
+	_shoot_sfx.stream = preload("res://assets/audio/cadena_molecular_ralentizante.mp3")
+	_shoot_sfx.volume_db = -24.0
+	add_child(_shoot_sfx)
+	
+	_minion_sfx = AudioStreamPlayer2D.new()
+	_minion_sfx.stream = preload("res://assets/audio/lanzamiento_capsula_pastilla.mp3")
+	_minion_sfx.volume_db = 0.0
+	add_child(_minion_sfx)
+	
 	_on_acquire()
 
 func _on_acquire() -> void:
@@ -77,6 +89,7 @@ func _on_shoot() -> void:
 	if _is_dead or not player or not is_instance_valid(player): return
 	var dir := (player.global_position - global_position).normalized()
 	var proj_parent = get_tree().current_scene.get_node("Projectiles")
+	_shoot_sfx.play()
 	
 	# Patrón tipo "Corazón de Isaac": Anillo de 8 proyectiles, con uno apuntando directo al jugador
 	var base_angle := dir.angle()
@@ -92,6 +105,7 @@ func _on_shoot() -> void:
 
 func _on_spawn_minions() -> void:
 	if _is_dead: return
+	_minion_sfx.play()
 	var enemies_node = get_tree().current_scene.get_node("Enemies")
 	for i in 5:
 		var angle := i * TAU / 5.0

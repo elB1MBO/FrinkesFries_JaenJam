@@ -9,6 +9,8 @@ var round_label: Label
 var timer_label: Label
 var game_over_panel: Panel
 var victory_panel: Panel
+var boss_defeated_panel: Panel
+var boss_defeated_label: Label
 var level_intro_panel: Panel
 var level_intro_label: Label
 var stat_labels: Dictionary = {}
@@ -82,15 +84,19 @@ func _build_ui() -> void:
 
 	round_label = Label.new()
 	round_label.text = "Ronda 1"
-	round_label.add_theme_font_size_override("font_size", 16)
+	round_label.add_theme_font_size_override("font_size", 32)
 	round_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	round_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	round_label.add_theme_constant_override("outline_size", 6)
 	round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	timer_vbox.add_child(round_label)
 
 	timer_label = Label.new()
 	timer_label.text = "1:00"
-	timer_label.add_theme_font_size_override("font_size", 28)
+	timer_label.add_theme_font_size_override("font_size", 48)
 	timer_label.add_theme_color_override("font_color", Color.WHITE)
+	timer_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	timer_label.add_theme_constant_override("outline_size", 8)
 	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	timer_vbox.add_child(timer_label)
 
@@ -175,6 +181,40 @@ func _build_ui() -> void:
 	go_exit_btn.custom_minimum_size = Vector2(150, 50)
 	go_exit_btn.pressed.connect(func(): get_tree().quit())
 	go_btn_hbox.add_child(go_exit_btn)
+	
+	# ── Jefe Derrotado (oculto) ──
+	boss_defeated_panel = Panel.new()
+	boss_defeated_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var bd_style = StyleBoxFlat.new()
+	bd_style.bg_color = Color(0, 0, 0, 0.8)
+	boss_defeated_panel.add_theme_stylebox_override("panel", bd_style)
+	boss_defeated_panel.visible = false
+	boss_defeated_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(boss_defeated_panel)
+
+	var bd_vbox = VBoxContainer.new()
+	bd_vbox.set_anchors_preset(Control.PRESET_CENTER)
+	bd_vbox.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	bd_vbox.grow_vertical = Control.GROW_DIRECTION_BOTH
+	bd_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	bd_vbox.add_theme_constant_override("separation", 30)
+	boss_defeated_panel.add_child(bd_vbox)
+	
+	boss_defeated_label = Label.new()
+	boss_defeated_label.add_theme_font_size_override("font_size", 52)
+	boss_defeated_label.add_theme_color_override("font_color", Color(0.8, 1.0, 0.4))
+	boss_defeated_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bd_vbox.add_child(boss_defeated_label)
+	
+	var next_btn = Button.new()
+	next_btn.text = "Pasar al siguiente nivel"
+	next_btn.custom_minimum_size = Vector2(250, 60)
+	next_btn.pressed.connect(func(): 
+		get_tree().paused = false
+		boss_defeated_panel.visible = false
+		EventBus.boss_defeated_acknowledged.emit()
+	)
+	bd_vbox.add_child(next_btn)
 
 	# ── Victoria (oculto) ──
 	victory_panel = Panel.new()
@@ -217,6 +257,25 @@ func _build_ui() -> void:
 	exit_btn.custom_minimum_size = Vector2(150, 50)
 	exit_btn.pressed.connect(func(): get_tree().quit())
 	btn_hbox.add_child(exit_btn)
+	
+	var credits_hbox = HBoxContainer.new()
+	credits_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	credits_hbox.add_theme_constant_override("separation", 50)
+	vic_vbox.add_child(credits_hbox)
+	
+	for creator in ["BIMBO", "itzZOA", "RauX"]:
+		var l = Label.new()
+		l.text = creator
+		l.add_theme_font_size_override("font_size", 32)
+		l.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+		credits_hbox.add_child(l)
+		
+	var memory_label = Label.new()
+	memory_label.text = "En memoria de Diego Ice"
+	memory_label.add_theme_font_size_override("font_size", 24)
+	memory_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	memory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vic_vbox.add_child(memory_label)
 
 	# ── Nivel Intro (Fade-out) ──
 	level_intro_panel = Panel.new()
@@ -265,8 +324,10 @@ func _make_bar_row(label_text: String, bar: ProgressBar) -> HBoxContainer:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var lbl := Label.new()
 	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", 24)
 	lbl.add_theme_color_override("font_color", Color.WHITE)
+	lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	lbl.add_theme_constant_override("outline_size", 4)
 	lbl.custom_minimum_size.x = 50
 	row.add_child(lbl)
 	row.add_child(bar)
@@ -276,8 +337,10 @@ func _make_bar_row(label_text: String, bar: ProgressBar) -> HBoxContainer:
 func _make_label(text: String, size: int, color: Color) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_font_size_override("font_size", size + 8)
 	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	lbl.add_theme_constant_override("outline_size", 4)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	return lbl
 
@@ -362,6 +425,10 @@ func _on_boss_health_changed(current: float, maximum: float) -> void:
 
 func _on_boss_defeated() -> void:
 	boss_container.visible = false
+	if GameManager.current_level_index < GameManager.LEVELS.size() - 1:
+		boss_defeated_label.text = "¡" + GameManager.BOSS_NAMES[GameManager.current_level_index] + " derrotado!"
+		boss_defeated_panel.visible = true
+		get_tree().paused = true
 
 func _on_round_ended(_wave: int) -> void:
 	boss_container.visible = false
@@ -395,8 +462,10 @@ func _build_stats_panel(parent: VBoxContainer) -> void:
 	var title := Label.new()
 	title.text = "ESTADÍSTICAS"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 14)
+	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	title.add_theme_color_override("font_outline_color", Color.BLACK)
+	title.add_theme_constant_override("outline_size", 4)
 	stats_vbox.add_child(title)
 
 	var sep2 := HSeparator.new()
@@ -416,8 +485,10 @@ func _build_stats_panel(parent: VBoxContainer) -> void:
 		var display_name: String = info[1]
 		var color: Color = info[2]
 		var lbl := Label.new()
-		lbl.add_theme_font_size_override("font_size", 16)
+		lbl.add_theme_font_size_override("font_size", 24)
 		lbl.add_theme_color_override("font_color", color)
+		lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		lbl.add_theme_constant_override("outline_size", 4)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		stat_labels[stat_name] = {"label": lbl, "display_name": display_name}
 		stats_vbox.add_child(lbl)

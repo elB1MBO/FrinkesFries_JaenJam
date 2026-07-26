@@ -1,8 +1,22 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://bfsxtj0pn3y58"]
 
-[ext_resource type="Script" path="res://scenes/ui/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" uid="uid://dxq6dpa8gei5w" path="res://scenes/ui/main_menu.gd" id="1_menu"]
+[ext_resource type="Texture2D" path="res://assets/sprites/botones_portada_normal_hover_click.png" id="2_btn_tex"]
 
-[node name="MainMenu" type="Control"]
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_normal"]
+texture = ExtResource("2_btn_tex")
+region_rect = Rect2(0, 0, 64, 32)
+modulate_color = Color(0.5, 0.6, 0.5, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hover"]
+texture = ExtResource("2_btn_tex")
+region_rect = Rect2(64, 0, 64, 32)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pressed"]
+texture = ExtResource("2_btn_tex")
+region_rect = Rect2(128, 0, 64, 32)
+
+[node name="MainMenu" type="Control" unique_id=1295969711]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +25,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=391503249]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,7 +34,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.05, 0.05, 0.1, 1)
 
-[node name="Title" type="Label" parent="."]
+[node name="Title" type="Label" parent="." unique_id=170527467]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -32,10 +46,10 @@ offset_bottom = 250.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.4, 1, 0.4, 1)
 theme_override_font_sizes/font_size = 64
-text = "FRIES VS VIRUS"
+text = "La Vacuna"
 horizontal_alignment = 1
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=423862503]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -51,25 +65,43 @@ grow_vertical = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="BtnPlay" type="Button" parent="VBoxContainer"]
+[node name="BtnPlay" type="Button" parent="VBoxContainer" unique_id=2124502574]
 custom_minimum_size = Vector2(250, 60)
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBoxTexture_normal")
+theme_override_styles/hover = SubResource("StyleBoxTexture_hover")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_pressed")
+theme_override_styles/focus = SubResource("StyleBoxTexture_hover")
 text = "Jugar"
 
-[node name="BtnOptions" type="Button" parent="VBoxContainer"]
+[node name="BtnOptions" type="Button" parent="VBoxContainer" unique_id=166626842]
 custom_minimum_size = Vector2(250, 60)
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBoxTexture_normal")
+theme_override_styles/hover = SubResource("StyleBoxTexture_hover")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_pressed")
+theme_override_styles/focus = SubResource("StyleBoxTexture_hover")
 text = "Opciones"
 
-[node name="BtnQuit" type="Button" parent="VBoxContainer"]
+[node name="BtnQuit" type="Button" parent="VBoxContainer" unique_id=1656744371]
 custom_minimum_size = Vector2(250, 60)
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBoxTexture_normal")
+theme_override_styles/hover = SubResource("StyleBoxTexture_hover")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_pressed")
+theme_override_styles/focus = SubResource("StyleBoxTexture_hover")
 text = "Salir"
 
-[node name="OptionsPanel" type="ColorRect" parent="."]
+[node name="OptionsPanel" type="ColorRect" parent="." unique_id=829584681]
 visible = false
 layout_mode = 1
 anchors_preset = 8
@@ -85,7 +117,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.1, 0.1, 0.15, 1)
 
-[node name="VBox" type="VBoxContainer" parent="OptionsPanel"]
+[node name="VBox" type="VBoxContainer" parent="OptionsPanel" unique_id=1711709039]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -99,35 +131,35 @@ grow_vertical = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="Label" type="Label" parent="OptionsPanel/VBox"]
+[node name="Label" type="Label" parent="OptionsPanel/VBox" unique_id=1924510385]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "Ajustes de Sonido"
 horizontal_alignment = 1
 
-[node name="MusicLabel" type="Label" parent="OptionsPanel/VBox"]
+[node name="MusicLabel" type="Label" parent="OptionsPanel/VBox" unique_id=1784483906]
 layout_mode = 2
 text = "Música"
 horizontal_alignment = 1
 
-[node name="MusicSlider" type="HSlider" parent="OptionsPanel/VBox"]
+[node name="MusicSlider" type="HSlider" parent="OptionsPanel/VBox" unique_id=635886912]
 layout_mode = 2
 max_value = 1.0
 step = 0.05
 value = 0.5
 
-[node name="SFXLabel" type="Label" parent="OptionsPanel/VBox"]
+[node name="SFXLabel" type="Label" parent="OptionsPanel/VBox" unique_id=1943574925]
 layout_mode = 2
 text = "SFX (Efectos)"
 horizontal_alignment = 1
 
-[node name="SFXSlider" type="HSlider" parent="OptionsPanel/VBox"]
+[node name="SFXSlider" type="HSlider" parent="OptionsPanel/VBox" unique_id=1831313211]
 layout_mode = 2
 max_value = 1.0
 step = 0.05
 value = 0.5
 
-[node name="BtnCloseOptions" type="Button" parent="OptionsPanel/VBox"]
+[node name="BtnCloseOptions" type="Button" parent="OptionsPanel/VBox" unique_id=1256933463]
 custom_minimum_size = Vector2(150, 40)
 layout_mode = 2
 size_flags_horizontal = 4

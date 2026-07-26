@@ -4,10 +4,12 @@ extends CharacterBody2D
 @export var max_hp: float = 15.0
 @export var speed: float = 120.0
 @export var xp_reward: int = 3
-@export var dna_drop_min: int = 10
-@export var dna_drop_max: int = 20
+@export var dna_drop_min: int = 20
+@export var dna_drop_max: int = 40
 
 var current_hp: float
+var player: Node2D = null
+var _is_dead: bool = false
 var direction: Vector2
 
 var dna_scene: PackedScene = preload("res://scenes/pickups/dna_fragment.tscn")
@@ -22,6 +24,7 @@ func _ready() -> void:
 
 func _on_acquire() -> void:
 	current_hp = max_hp
+	_is_dead = false
 	modulate = Color.WHITE
 	# Dirección inicial aleatoria
 	direction = Vector2.from_angle(randf() * TAU).normalized()
@@ -42,11 +45,13 @@ func _physics_process(_delta: float) -> void:
 
 
 func take_damage(amount: float) -> void:
+	if _is_dead: return
 	current_hp -= amount
-	modulate = Color(2.0, 1.0, 1.0)
+	modulate = Color(2.0, 2.0, 2.0)
 	var tw := create_tween()
 	tw.tween_property(self, "modulate", Color.WHITE, 0.12)
 	if current_hp <= 0.0:
+		_is_dead = true
 		_die()
 
 

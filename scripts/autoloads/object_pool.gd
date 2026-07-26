@@ -30,7 +30,8 @@ func acquire(scene: PackedScene, parent: Node, spawn_pos: Vector2) -> Node:
 			instance.call_deferred("reparent", parent)
 			
 	# As it might not be in the tree yet, we set position directly
-	instance.position = spawn_pos
+	instance.global_position = spawn_pos
+	instance.set_deferred("global_position", spawn_pos)
 	
 	# Reactivar diferidamente para evitar errores de físicas
 	instance.set_deferred("process_mode", Node.PROCESS_MODE_INHERIT)
@@ -63,8 +64,17 @@ func release(instance: Node) -> void:
 	if instance.has_method("_on_release"):
 		instance._on_release()
 		
-	# Desactivar
+	# Desactivar y resetear estado
 	instance.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
+	
+	if instance is Node2D:
+		instance.set_deferred("global_position", Vector2(-9999, -9999))
+		instance.set_deferred("rotation", 0.0)
+		instance.set_deferred("scale", Vector2.ONE)
+	
+	if "velocity" in instance:
+		instance.set_deferred("velocity", Vector2.ZERO)
+		
 	if instance is CanvasItem:
 		instance.call_deferred("hide")
 		
