@@ -70,5 +70,3 @@ func _spawn_dna() -> void:
 	var pickups = get_tree().current_scene.get_node("Pickups")
 	var frag = ObjectPool.acquire(dna_scene, pickups, global_position + Vector2(randf_range(-10, 10), randf_range(-10, 10)))
 	frag.dna_value = total
-
-

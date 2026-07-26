@@ -16,12 +16,13 @@ var anim_frame_toggle: int = 0
 
 # Estado de mutaciones
 var _regen_timer: float = 0.0
-var _toxic_timer: float = 0.0
-var _toxic_range: float = 80.0
-var _toxic_damage: float = 5.0
+
 
 var _slow_amount: float = 0.0
 var _slow_timer: float = 0.0
+
+var _atk_slow_amount: float = 0.0
+var _atk_slow_timer: float = 0.0
 
 var _knockback_velocity: Vector2 = Vector2.ZERO
 
@@ -42,6 +43,12 @@ func _physics_process(delta: float) -> void:
 		_slow_timer -= delta
 		if _slow_timer <= 0.0:
 			_slow_amount = 0.0
+			
+	if _atk_slow_timer > 0.0:
+		_atk_slow_timer -= delta
+		if _atk_slow_timer <= 0.0:
+			_atk_slow_amount = 0.0
+			_update_attack_speed()
 
 	var input_dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var target_velocity := input_dir * GameManager.get_stat("move_speed") * (1.0 - _slow_amount)
@@ -58,12 +65,21 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	_process_regen(delta)
-	_process_toxic_aura(delta)
 
 
 # ── Auto-disparo ───────────────────────────────────────────────
 func _update_attack_speed() -> void:
-	attack_timer.wait_time = 1.0 / GameManager.get_stat("attack_speed")
+	var base_spd = GameManager.get_stat("attack_speed")
+	var final_spd = base_spd * (1.0 - _atk_slow_amount)
+	# Prevenir división por cero si final_spd llega a 0
+	if final_spd <= 0.0: final_spd = 0.1
+	attack_timer.wait_time = 1.0 / final_spd
+
+
+func apply_attack_slow(amount: float, duration: float) -> void:
+	_atk_slow_amount = maxf(_atk_slow_amount, amount)
+	_atk_slow_timer = maxf(_atk_slow_timer, duration)
+	_update_attack_speed()
 
 
 func _on_attack_timer_timeout() -> void:
@@ -148,6 +164,9 @@ func apply_slow(amount: float, duration: float) -> void:
 # ── Mutaciones: aplicación ─────────────────────────────────────
 func _on_mutation_activated(mutation_id: String) -> void:
 	match mutation_id:
+		"creatina_illo":
+			var tw := create_tween()
+			tw.tween_property(self, "scale", scale * 1.1, 0.5)
 		"orbital_cell":
 			var cell = orbital_cell_scene.instantiate()
 			add_child(cell)
@@ -156,8 +175,7 @@ func _on_mutation_activated(mutation_id: String) -> void:
 			var bonus_hp := GameManager.get_stat("max_hp") - current_hp
 			if bonus_hp > 0:
 				heal(bonus_hp * 0.25)
-		"toxic_capside":
-			pass  # Se procesa en _process_toxic_aura
+
 		"reactive_spikes":
 			pass  # Se dispara en take_damage
 		"split_shot":
@@ -174,21 +192,7 @@ func _process_regen(delta: float) -> void:
 		heal(1.0)
 
 
-func _process_toxic_aura(delta: float) -> void:
-	if not GameManager.has_mutation("toxic_capside"):
-		return
-	_toxic_timer += delta
-	if _toxic_timer < 1.0:
-		return
-	_toxic_timer -= 1.0
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if enemy.process_mode == Node.PROCESS_MODE_DISABLED:
-			continue
-		if enemy.get("current_hp") != null and enemy.current_hp <= 0.0:
-			continue
-		if global_position.distance_to(enemy.global_position) < _toxic_range:
-			if enemy.has_method("take_damage"):
-				enemy.take_damage(_toxic_damage)
+
 
 
 func _trigger_reactive_spikes() -> void:
@@ -214,7 +218,4 @@ func _update_sprite_state() -> void:
 
 # ── Dibujo de Mutaciones ──────────────────────────────────────
 func _draw() -> void:
-	# Aura tóxica visible
-	if GameManager.has_mutation("toxic_capside"):
-		draw_arc(Vector2.ZERO, _toxic_range, 0, TAU, 32, Color(0.6, 0.15, 0.9, 0.2), 2.0)
-		draw_circle(Vector2.ZERO, _toxic_range, Color(0.5, 0.1, 0.8, 0.05))
+	pass

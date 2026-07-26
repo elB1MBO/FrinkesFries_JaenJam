@@ -24,6 +24,7 @@ func _on_acquire() -> void:
 	_life_timer = 0.0
 	is_split = false
 	_is_dead = false
+	speed = 500.0  # Reset para evitar que los disparos divididos conserven la velocidad reducida
 
 
 func _physics_process(delta: float) -> void:
@@ -41,12 +42,14 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("enemies") and body.has_method("take_damage"):
 		var final_damage := damage
 
-		# Crítico
-		var crit_chance := GameManager.get_stat("crit_chance")
-		if crit_chance > 0.0 and randf() < crit_chance:
-			final_damage *= 2.0
-
 		body.take_damage(final_damage)
+		
+		# Knockback visual
+		if not body.has_meta("is_boss"):
+			var tw := body.create_tween()
+			var kb_pos := body.position + direction.normalized() * 12.0
+			tw.tween_property(body, "position", kb_pos, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			body.set_meta("kb_tween", tw)
 
 		# Life steal
 		var life_steal := GameManager.get_stat("life_steal")

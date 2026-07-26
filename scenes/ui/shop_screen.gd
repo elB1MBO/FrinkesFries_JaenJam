@@ -190,10 +190,19 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 
 	# Icono
 	var icon_c := CenterContainer.new()
-	var icon := ColorRect.new()
-	icon.custom_minimum_size = Vector2(45, 45)
-	icon.color = data.color
-	icon_c.add_child(icon)
+	if data.has("icon_path") and ResourceLoader.exists(data.icon_path):
+		var icon := TextureRect.new()
+		icon.texture = load(data.icon_path)
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = Vector2(45, 45)
+		icon_c.add_child(icon)
+	else:
+		var icon := ColorRect.new()
+		icon.custom_minimum_size = Vector2(45, 45)
+		icon.color = data.color
+		icon_c.add_child(icon)
 	vbox.add_child(icon_c)
 
 	# Nombre
@@ -205,13 +214,15 @@ func _create_shop_card(mutation_id: String, data: Dictionary) -> PanelContainer:
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(name_lbl)
 
-	# Rareza
-	var rarity_lbl := Label.new()
-	rarity_lbl.text = MutationDefs.get_rarity_name(data.rarity)
-	rarity_lbl.add_theme_font_size_override("font_size", 13)
-	rarity_lbl.add_theme_color_override("font_color", MutationDefs.get_rarity_color(data.rarity))
-	rarity_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(rarity_lbl)
+	# Rareza (Reemplazado por Flavor Text)
+	var flavor_lbl := Label.new()
+	flavor_lbl.text = data.get("flavor", "\"Lorem ipsum dolor sit amet...\"")
+	flavor_lbl.add_theme_font_size_override("font_size", 12)
+	flavor_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 0.8))
+	flavor_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flavor_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	flavor_lbl.custom_minimum_size.x = 180
+	vbox.add_child(flavor_lbl)
 
 	# Descripción
 	var desc_lbl := Label.new()

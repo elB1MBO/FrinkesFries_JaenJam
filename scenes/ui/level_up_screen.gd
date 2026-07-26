@@ -8,16 +8,13 @@ var _subtitle: Label
 var _cards_container: HBoxContainer
 var _current_choices: Array = []
 
-# Opciones de mejora de stats
 const STAT_UPGRADES: Array = [
-	{"stat": "max_hp",       "display": "+25 HP Máx",         "flat": 25.0,  "percent": 0.0,  "color": Color(1.0, 0.5, 0.5)},
-	{"stat": "attack",       "display": "+5 Ataque",          "flat": 5.0,   "percent": 0.0,  "color": Color(1.0, 0.7, 0.3)},
-	{"stat": "defense",      "display": "+3 Defensa",         "flat": 3.0,   "percent": 0.0,  "color": Color(0.5, 0.7, 1.0)},
-	{"stat": "attack_speed", "display": "+15% Vel. Ataque",   "flat": 0.0,   "percent": 0.15, "color": Color(1.0, 1.0, 0.4)},
-	{"stat": "move_speed",   "display": "+10% Vel. Movim.",   "flat": 0.0,   "percent": 0.10, "color": Color(0.4, 1.0, 0.6)},
-	{"stat": "life_steal",   "display": "+5% Robo de Vida",   "flat": 0.05,  "percent": 0.0,  "color": Color(0.9, 0.3, 0.3)},
-	{"stat": "crit_chance",  "display": "+5% Prob. Crítico",  "flat": 0.05,  "percent": 0.0,  "color": Color(1.0, 0.6, 0.1)},
-	{"stat": "luck",         "display": "+10 Suerte",         "flat": 10.0,  "percent": 0.0,  "color": Color(0.3, 1.0, 0.5)},
+	{"stat": "max_hp",       "display": "+10 HP Máx",         "flat": 10.0,  "percent": 0.0,  "color": Color(1.0, 0.5, 0.5)},
+	{"stat": "attack",       "display": "+3 Ataque",          "flat": 3.0,   "percent": 0.0,  "color": Color(1.0, 0.7, 0.3)},
+	{"stat": "defense",      "display": "+2 Defensa",         "flat": 2.0,   "percent": 0.0,  "color": Color(0.5, 0.7, 1.0)},
+	{"stat": "attack_speed", "display": "+10% Vel. Ataque",   "flat": 0.0,   "percent": 0.10, "color": Color(1.0, 1.0, 0.4)},
+	{"stat": "move_speed",   "display": "+5% Vel. Movim.",    "flat": 0.0,   "percent": 0.05, "color": Color(0.4, 1.0, 0.6)},
+	{"stat": "luck",         "display": "+5 Suerte",          "flat": 5.0,   "percent": 0.0,  "color": Color(0.3, 1.0, 0.5)},
 ]
 
 
@@ -148,7 +145,7 @@ func _create_stat_card(upgrade: Dictionary) -> PanelContainer:
 	# Valor actual
 	var current_val := GameManager.get_stat(upgrade.stat)
 	var current_lbl := Label.new()
-	if upgrade.stat in ["crit_chance", "life_steal"]:
+	if upgrade.stat == "life_steal":
 		current_lbl.text = "Actual: %d%%" % int(current_val * 100)
 	else:
 		current_lbl.text = "Actual: %d" % int(current_val)

@@ -1,7 +1,7 @@
 extends Node
 ## Estado global del juego: stats, XP, niveles, moneda, mutaciones, rondas.
 
-enum GameState { PLAYING, PAUSED, GAME_OVER, SHOPPING, VICTORY }
+enum GameState { MENU, PLAYING, PAUSED, GAME_OVER, SHOPPING, VICTORY }
 
 # ── Estado de partida ──────────────────────────────────────────
 var current_state: GameState = GameState.PLAYING
@@ -22,19 +22,18 @@ var xp_to_next_level: int = 30
 const ARENA_HALF_SIZE: float = 600.0
 
 # Tienda
-var reroll_cost: int = 50
-var _reroll_base: int = 50
+var reroll_cost: int = 25
+var _reroll_base: int = 25
 var _reroll_increment: int = 25
 
 # ── Stats base del jugador ─────────────────────────────────────
 var base_stats: Dictionary = {
 	"max_hp": 100.0,
 	"attack": 10.0,
-	"defense": 2.0,
-	"attack_speed": 2.5,
+	"defense": 1.0,
+	"attack_speed": 2.0,
 	"move_speed": 200.0,
 	"life_steal": 0.0,
-	"crit_chance": 0.0,
 	"luck": 0.0,
 }
 
@@ -100,12 +99,20 @@ func activate_mutation(mutation_id: String) -> void:
 	active_mutations.append(mutation_id)
 
 	match mutation_id:
+		"creatina_illo":
+			add_modifier("max_hp", mutation_id, 0.0, 0.25)
+		"proteina_wey":
+			add_modifier("attack", mutation_id, 15.0, 0.0)
+		"cellular_vampirism":
+			add_modifier("life_steal", mutation_id, 0.05, 0.0)
+		"opportunistic_infection":
+			add_modifier("luck", mutation_id, 20.0, 0.0)
 		"reinforced_membrane":
 			add_modifier("max_hp", "reinforced_membrane", 0.0, 0.25)
 		"minor_health":
-			add_modifier("max_hp", mutation_id, 0.0, 0.10)
+			add_modifier("max_hp", mutation_id, 0.0, 0.05)
 		"minor_attack":
-			add_modifier("attack", mutation_id, 0.0, 0.10)
+			add_modifier("attack", mutation_id, 0.0, 0.05)
 		"minor_speed":
 			add_modifier("move_speed", mutation_id, 0.0, 0.10)
 		"minor_atk_speed":
@@ -138,6 +145,9 @@ func increment_reroll_cost() -> void:
 
 # ── XP & Level Up (automática al matar) ───────────────────────
 func _on_xp_gained(amount: int) -> void:
+	if has_mutation("proteina_wey"):
+		amount = int(amount * 1.5)
+	
 	player_xp += amount
 	while player_xp >= xp_to_next_level:
 		player_xp -= xp_to_next_level
@@ -147,8 +157,7 @@ func _on_xp_gained(amount: int) -> void:
 
 
 func _calc_xp_threshold(level: int) -> int:
-	# Coste exponencial: 30, 45, 67, 101, 151, 227...
-	return int(floor(30.0 * pow(1.5, level - 1)))
+	return int(floor(30.0 * pow(2, level - 1)))
 
 
 # ── Kills & Currency ───────────────────────────────────────────
@@ -157,6 +166,9 @@ func _on_enemy_killed(_pos: Vector2, _xp: int) -> void:
 
 
 func _on_currency_collected(amount: int) -> void:
+	var luck := get_stat("luck")
+	if luck > 0.0 and randf() < (luck / 100.0):
+		amount *= 2
 	total_currency += amount
 
 

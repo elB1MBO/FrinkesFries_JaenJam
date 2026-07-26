@@ -1,5 +1,8 @@
 extends CharacterBody2D
-## John Rapamune (Jefe Pulmones)
+## Levetiracetam (Jefe Cerebro)
+## - Disparo normal: círculos azules (reducen Atk Spd 50%)
+## - Especial: onda cada 10s (7.5s bajo 25%)
+## - Fase: bajo 50%, proyectil normal +25% de tamaño
 
 @export var max_hp: float = 2000.0
 @export var speed: float = 30.0
@@ -12,14 +15,14 @@ var current_hp: float
 var player: Node2D = null
 var _stun_timer: float = 0.0
 var _is_dead: bool = false
-var _current_slow_amount: float = 0.25
+var _projectile_scale: float = 1.0
 
 var dna_scene: PackedScene = preload("res://scenes/pickups/dna_fragment.tscn")
-var minion_scene: PackedScene = preload("res://scenes/enemies/jhon_rapamune_minion.tscn")
-var projectile_scene: PackedScene = preload("res://scenes/projectiles/boss_projectile.tscn")
+var projectile_scene: PackedScene = preload("res://scenes/projectiles/boss_levetiracetam_projectile.tscn")
+var wave_scene: PackedScene = preload("res://scenes/projectiles/boss_levetiracetam_wave.tscn")
 
 @onready var shoot_timer: Timer = $ShootTimer
-@onready var minion_timer: Timer = $MinionTimer
+@onready var special_timer: Timer = $SpecialTimer
 
 
 func _ready() -> void:
@@ -27,16 +30,20 @@ func _ready() -> void:
 	set_meta("is_boss", true)
 	player = get_tree().get_first_node_in_group("player")
 	shoot_timer.timeout.connect(_on_shoot)
-	minion_timer.timeout.connect(_on_spawn_minions)
+	special_timer.timeout.connect(_on_special_attack)
 	_on_acquire()
+
 
 func _on_acquire() -> void:
 	current_hp = max_hp
 	modulate = Color.WHITE
 	_stun_timer = 0.0
 	_is_dead = false
+	_projectile_scale = 1.0
 	if shoot_timer: shoot_timer.start()
-	if minion_timer: minion_timer.start()
+	if special_timer: 
+		special_timer.wait_time = 10.0
+		special_timer.start()
 	EventBus.boss_spawned.emit(max_hp)
 	EventBus.boss_health_changed.emit(current_hp, max_hp)
 
@@ -48,17 +55,18 @@ func _physics_process(delta: float) -> void:
 		_stun_timer -= delta
 		return
 		
-	# Lógica de fases según la vida
+	# Lógica de fases
 	var hp_percent = current_hp / max_hp
+	
 	if hp_percent <= 0.25:
-		shoot_timer.wait_time = 0.85
-		_current_slow_amount = 0.50
+		special_timer.wait_time = 7.5
+		_projectile_scale = 1.25
 	elif hp_percent <= 0.50:
-		shoot_timer.wait_time = 0.85
-		_current_slow_amount = 0.25
+		special_timer.wait_time = 10.0
+		_projectile_scale = 1.25
 	else:
-		shoot_timer.wait_time = 1.0
-		_current_slow_amount = 0.25
+		special_timer.wait_time = 10.0
+		_projectile_scale = 1.0
 		
 	if not player or not is_instance_valid(player):
 		return
@@ -78,28 +86,23 @@ func _on_shoot() -> void:
 	var dir := (player.global_position - global_position).normalized()
 	var proj_parent = get_tree().current_scene.get_node("Projectiles")
 	
-	# Patrón tipo "Corazón de Isaac": Anillo de 8 proyectiles, con uno apuntando directo al jugador
+	# Disparo de múltiples círculos azules en abanico
 	var base_angle := dir.angle()
-	
-	for i in 8:
-		var angle = base_angle + (i * TAU / 8.0)
+	for i in range(-1, 2):
+		var angle = base_angle + (i * PI / 8.0)
 		var proj = ObjectPool.acquire(projectile_scene, proj_parent, global_position)
 		proj.direction = Vector2.from_angle(angle)
-		proj.damage = 25.0
-		if "slow_amount" in proj:
-			proj.slow_amount = _current_slow_amount
+		if "scale_mult" in proj:
+			proj.scale_mult = _projectile_scale
 
 
-func _on_spawn_minions() -> void:
-	if _is_dead: return
-	var enemies_node = get_tree().current_scene.get_node("Enemies")
-	for i in 5:
-		var angle := i * TAU / 5.0
-		var spawn_pos = global_position + Vector2.from_angle(angle) * 80.0
-		var minion = ObjectPool.acquire(minion_scene, enemies_node, spawn_pos)
-		# Darle un pequeño boost inicial para que se separe
-		if minion and minion.has_method("_physics_process"):
-			minion.velocity = Vector2.from_angle(angle) * 200.0
+func _on_special_attack() -> void:
+	if _is_dead or not player or not is_instance_valid(player): return
+	var dir := (player.global_position - global_position).normalized()
+	var proj_parent = get_tree().current_scene.get_node("Projectiles")
+	
+	var wave = ObjectPool.acquire(wave_scene, proj_parent, global_position)
+	wave.direction = dir
 
 
 func take_damage(amount: float) -> void:
@@ -117,7 +120,7 @@ func take_damage(amount: float) -> void:
 func _die() -> void:
 	_is_dead = true
 	shoot_timer.stop()
-	minion_timer.stop()
+	special_timer.stop()
 	
 	EventBus.xp_gained.emit(xp_reward)
 	EventBus.enemy_killed.emit(global_position, xp_reward)

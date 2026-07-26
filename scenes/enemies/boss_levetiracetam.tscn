@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/enemies/boss_levetiracetam.gd" id="1_boss"]
+[ext_resource type="Texture2D" path="res://assets/sprites/levetiracetam.png" id="2_sprite"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_boss"]
+radius = 45.0
+
+[node name="BossLevetiracetam" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_boss")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_boss")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(3, 3)
+texture = ExtResource("2_sprite")
+
+[node name="ShootTimer" type="Timer" parent="."]
+wait_time = 1.0
+
+[node name="SpecialTimer" type="Timer" parent="."]
+wait_time = 10.0

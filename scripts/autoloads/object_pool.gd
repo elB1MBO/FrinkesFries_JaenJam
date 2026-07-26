@@ -9,15 +9,20 @@ func acquire(scene: PackedScene, parent: Node, spawn_pos: Vector2) -> Node:
 		_pools[scene] = []
 		
 	var pool: Array = _pools[scene]
-	var instance: Node
+	var instance: Node = null
 	
-	if pool.is_empty():
+	while not pool.is_empty():
+		var popped = pool.pop_back()
+		if is_instance_valid(popped) and not popped.is_queued_for_deletion():
+			instance = popped
+			break
+			
+	if instance == null:
 		instance = scene.instantiate()
 		instance.set_meta("pool_scene", scene)
 		instance.set_meta("is_pooled", false)
 		parent.call_deferred("add_child", instance)
 	else:
-		instance = pool.pop_back()
 		instance.set_meta("is_pooled", false)
 		if instance.get_parent() == null:
 			parent.call_deferred("add_child", instance)
@@ -42,6 +47,12 @@ func release(instance: Node) -> void:
 	if instance.get_meta("is_pooled", false):
 		return
 	instance.set_meta("is_pooled", true)
+	
+	if instance.has_meta("kb_tween"):
+		var tw = instance.get_meta("kb_tween")
+		if tw and tw.is_valid():
+			tw.kill()
+		instance.remove_meta("kb_tween")
 	
 	var scene: PackedScene = instance.get_meta("pool_scene", null)
 	if scene == null:

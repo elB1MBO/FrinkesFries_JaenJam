@@ -18,16 +18,16 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_angle += orbit_speed * delta
 	position = Vector2.from_angle(_angle) * orbit_radius
-	queue_redraw()
 
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.is_in_group("enemies") and body.has_method("take_damage"):
 		body.take_damage(damage)
-
-
-func _draw() -> void:
-	# Célula mona con membrana
-	draw_circle(Vector2.ZERO, 9.0, Color(0.9, 0.55, 0.7, 0.85))
-	draw_circle(Vector2(2, -1), 4.0, Color(0.7, 0.3, 0.5))
-	draw_arc(Vector2.ZERO, 10.0, 0, TAU, 24, Color(0.95, 0.7, 0.8), 1.5)
+		
+		# Knockback visual
+		if not body.has_meta("is_boss"):
+			var tw := body.create_tween()
+			var kb_dir := (body.global_position - global_position).normalized()
+			var kb_pos := body.position + kb_dir * 15.0
+			tw.tween_property(body, "position", kb_pos, 0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			body.set_meta("kb_tween", tw)

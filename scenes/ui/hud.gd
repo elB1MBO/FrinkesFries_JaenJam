@@ -409,7 +409,6 @@ func _build_stats_panel(parent: VBoxContainer) -> void:
 		["attack_speed", "⚡ Vel.Ataque",  Color(1.0, 1.0, 0.4)],
 		["move_speed",   "🏃 Vel.Movim.", Color(0.4, 1.0, 0.6)],
 		["life_steal",   "🩸 Robo vida",  Color(0.9, 0.3, 0.3)],
-		["crit_chance",  "💥 Prob.Crit.", Color(1.0, 0.6, 0.1)],
 		["luck",         "🍀 Suerte",     Color(0.3, 1.0, 0.5)],
 	]
 	for info in stats_info:
@@ -430,7 +429,9 @@ func _update_stats() -> void:
 		var info: Dictionary = stat_labels[stat_name]
 		var val: float = GameManager.get_stat(stat_name)
 		var lbl: Label = info.label
-		if stat_name in ["crit_chance", "life_steal"]:
+		if stat_name == "life_steal":
 			lbl.text = "%s: %d%%" % [info.display_name, int(val * 100)]
+		elif stat_name == "attack_speed":
+			lbl.text = "%s: %.2f" % [info.display_name, val]
 		else:
 			lbl.text = "%s: %d" % [info.display_name, int(val)]

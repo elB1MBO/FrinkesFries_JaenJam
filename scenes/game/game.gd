@@ -9,10 +9,11 @@ var lymphocyte_scene: PackedScene = preload("res://scenes/enemies/lymphocyte_b.t
 var lymphocyte_t_scene: PackedScene = preload("res://scenes/enemies/lymphocyte_t.tscn")
 var red_blood_cell_scene: PackedScene = preload("res://scenes/enemies/red_blood_cell.tscn")
 var boss_jhon_rapamune_scene: PackedScene = preload("res://scenes/enemies/boss_jhon_rapamune.tscn")
+var boss_levetiracetam_scene: PackedScene = preload("res://scenes/enemies/boss_levetiracetam.tscn")
+var boss_corazon_scene: PackedScene = preload("res://scenes/enemies/boss_corazon.tscn")
 
 # Dificultad
 var enemies_per_spawn: int = 2
-var _difficulty_step: int = 0
 
 # Ronda
 var round_duration: float = 60.0
@@ -88,6 +89,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode == KEY_F1:
 			if GameManager.current_state == GameManager.GameState.PLAYING:
 				_end_round()
+		elif event.keycode == KEY_F2:
+			EventBus.currency_collected.emit(5000)
 
 
 # ── Spawn de enemigos ──────────────────────────────────────────
@@ -101,12 +104,22 @@ func _on_spawn_timer() -> void:
 func _spawn_boss() -> void:
 	var boss: Node2D
 	# Nivel 0 = Pulmones -> John Rapamune
+	var multiplier := pow(1.5, GameManager.current_level_index)
+	
 	if GameManager.current_level_index == 0:
 		var spawn_pos := Vector2(0, -arena_half_size + 100.0) # Centro superior
 		boss = ObjectPool.acquire(boss_jhon_rapamune_scene, enemies_node, spawn_pos)
-		
-		# Ajustar estadísticas según dificultad
-		boss.max_hp += _difficulty_step * 250.0
+		boss.max_hp *= multiplier
+		boss.current_hp = boss.max_hp
+	elif GameManager.current_level_index == 1:
+		var spawn_pos := Vector2(0, -arena_half_size + 100.0)
+		boss = ObjectPool.acquire(boss_levetiracetam_scene, enemies_node, spawn_pos)
+		boss.max_hp *= multiplier
+		boss.current_hp = boss.max_hp
+	elif GameManager.current_level_index == 2:
+		var spawn_pos := Vector2(0, -arena_half_size + 100.0)
+		boss = ObjectPool.acquire(boss_corazon_scene, enemies_node, spawn_pos)
+		boss.max_hp *= multiplier
 		boss.current_hp = boss.max_hp
 	else:
 		# Fallback para los otros niveles por ahora (macrófago gigante)
@@ -114,11 +127,11 @@ func _spawn_boss() -> void:
 		boss = ObjectPool.acquire(macrophage_scene, enemies_node, spawn_pos)
 		boss.set_meta("is_boss", true)
 		boss.scale = Vector2(2.5, 2.5)
-		boss.max_hp = 150.0 + 1500.0 + (_difficulty_step * 200.0)
+		boss.max_hp = 1650.0 * multiplier
 		boss.current_hp = boss.max_hp
 		if "speed" in boss: boss.speed = 40.0 * 0.8
-		if "xp_reward" in boss: boss.xp_reward = 15 + 500
-		if "dna_drop_max" in boss: boss.dna_drop_max = 10 + 200
+		if "xp_reward" in boss: boss.xp_reward = int(515 * multiplier)
+		if "dna_drop_max" in boss: boss.dna_drop_max = int(210 * multiplier)
 
 
 func _pick_enemy_scene() -> PackedScene:
@@ -154,15 +167,18 @@ func _pick_enemy_scene() -> PackedScene:
 func _spawn_enemy() -> void:
 	var scene := _pick_enemy_scene()
 	var enemy = ObjectPool.acquire(scene, enemies_node, _random_spawn_pos())
-	# Escalado de dificultad
-	enemy.max_hp += _difficulty_step * 2.0
-	if enemy.has_method("_physics_process"):
-		if "speed" in enemy:
-			enemy.speed += _difficulty_step * 1.5
+	# Ajustar estadísticas según el multiplicador de nivel (1.5x por nivel)
+	var multiplier := pow(1.5, GameManager.current_level_index)
+	enemy.max_hp *= multiplier
+	enemy.current_hp = enemy.max_hp
+	
+	if "speed" in enemy:
+		if enemy.name.begins_with("Lymphocyte"):
+			enemy.speed *= pow(1.1, GameManager.current_level_index) # Un poco menos de speed
 	if "xp_reward" in enemy:
-		enemy.xp_reward += int(_difficulty_step * 0.5)
+		enemy.xp_reward = int(enemy.xp_reward * multiplier)
 	if "dna_drop_max" in enemy:
-		enemy.dna_drop_max += int(_difficulty_step * 0.5)
+		enemy.dna_drop_max = int(enemy.dna_drop_max * multiplier)
 	# add_child is handled by ObjectPool
 	pass
 
@@ -214,8 +230,6 @@ func _on_shop_closed() -> void:
 			EventBus.level_changed.emit(GameManager.current_level_index, GameManager.LEVELS[GameManager.current_level_index])
 		
 	GameManager.current_state = GameManager.GameState.PLAYING
-	_difficulty_step += 1
-	_increase_difficulty()
 	_round_timer = round_duration
 	_last_tick = -1
 	
@@ -227,12 +241,6 @@ func _on_shop_closed() -> void:
 		_spawn_boss()
 	else:
 		spawn_timer.start()
-
-
-func _increase_difficulty() -> void:
-	if _difficulty_step % 2 == 0:
-		enemies_per_spawn = mini(enemies_per_spawn + 1, 15)
-	spawn_timer.wait_time = maxf(spawn_timer.wait_time - 0.1, 0.6)
 
 
 func _on_boss_defeated() -> void:

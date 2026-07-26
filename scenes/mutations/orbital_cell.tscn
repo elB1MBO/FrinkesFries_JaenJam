@@ -1,16 +1,20 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://bpnjm46wvvih0"]
 
-[ext_resource type="Script" path="res://scenes/mutations/orbital_cell.gd" id="1_cell"]
+[ext_resource type="Script" uid="uid://fybdvkosec7d" path="res://scenes/mutations/orbital_cell.gd" id="1_cell"]
+[ext_resource type="Texture2D" uid="uid://eaavs6dk042t" path="res://assets/sprites/celula_orbital.png" id="2_sprite"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_cell"]
-radius = 10.0
 
-[node name="OrbitalCell" type="Area2D"]
+[node name="OrbitalCell" type="Area2D" unique_id=536581285]
 collision_layer = 4
 collision_mask = 2
-monitoring = true
 monitorable = false
 script = ExtResource("1_cell")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1687679248]
+texture_filter = 1
+scale = Vector2(1.5, 1.5)
+texture = ExtResource("2_sprite")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=583437425]
 shape = SubResource("CircleShape2D_cell")

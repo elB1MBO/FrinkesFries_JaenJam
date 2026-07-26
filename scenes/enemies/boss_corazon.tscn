@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://ccd7gc7y26wbf"]
+
+[ext_resource type="Script" uid="uid://crkhb06g08tgw" path="res://scenes/enemies/boss_corazon.gd" id="1_boss"]
+[ext_resource type="Texture2D" uid="uid://8laljerj87cs" path="res://assets/sprites/corazon_latino.png" id="2_tex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_boss"]
+radius = 40.0
+
+[node name="BossCorazon" type="CharacterBody2D" unique_id=737462995]
+collision_layer = 2
+collision_mask = 5
+script = ExtResource("1_boss")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1065188178]
+texture_filter = 1
+scale = Vector2(3, 3)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=87418847]
+position = Vector2(0, -12)
+shape = SubResource("CircleShape2D_boss")
+
+[node name="ShootTimer" type="Timer" parent="." unique_id=1451133439]
+
+[node name="CrushTimer" type="Timer" parent="." unique_id=809883945]
+
+[node name="HomingTimer" type="Timer" parent="." unique_id=1623412318]
